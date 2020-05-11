@@ -41,12 +41,12 @@ class CountryModel:
             plots_config=plots_config,
         )
 
-    def build_model(self, params, update_params={}):
-        return build_model(self.country, params, update_params)
+    def build_model(self, params):
+        return build_model(self.country, params)
 
     @property
     def params(self):
-        return load_params(FILE_DIR, application=self.country)
+        return load_params("sir_example", self.country)
 
     def run_model(self, run_name="model-run", run_desc=""):
         self._run_model(run_name, run_desc)

@@ -4,8 +4,8 @@ Build the COVID country model runner functions
 import os
 import yaml
 
+from autumn.tool_kit import load_params
 from autumn.model_runner import build_model_runner
-from autumn.tool_kit.params import load_params
 
 from .model import build_model
 
@@ -45,12 +45,13 @@ class CountryModel:
             plots_config=plots_config,
         )
 
-    def build_model(self, params, update_params={}):
-        return build_model(self.country, params, update_params)
+    def build_model(self, params):
+        assert params["country"] == self.country, "Country mismatch"
+        return build_model(params)
 
     @property
     def params(self):
-        return load_params(FILE_DIR, application=self.country)
+        return load_params("covid_19", self.country)
 
     def run_model(self, run_name="model-run", run_desc=""):
         self._run_model(run_name, run_desc)
