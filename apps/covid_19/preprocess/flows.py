@@ -1,9 +1,9 @@
 from autumn.constants import Flow, Compartment
 
 
-def get_flows(is_importation_active: bool):
+def get_flows(add_import_flow: bool):
     flows = DEFAULT_FLOWS
-    if is_importation_active:
+    if add_import_flow:
         import_flow = {
             "type": Flow.STANDARD,
             "origin": Compartment.SUSCEPTIBLE,

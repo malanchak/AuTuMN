@@ -2,7 +2,7 @@ import os
 import itertools
 
 from autumn import constants
-from autumn.constants import Compartment
+from autumn.constants import Compartment, BirthApproach
 from autumn.demography.social_mixing import get_total_contact_rates_by_age
 from summer.model import StratifiedModel
 from autumn.db import Database, find_population_by_agegroup
@@ -19,6 +19,7 @@ from autumn.tool_kit.utils import (
     repeat_list_elements_average_last_two,
     element_wise_list_division,
 )
+from autumn.curve import scale_up_function, tanh_based_scaleup
 from autumn.constants import Compartment
 from autumn.summer_related.parameter_adjustments import (
     adjust_upstream_stratified_parameter,
@@ -67,16 +68,31 @@ validate_params = sb.build_validator(
     symptomatic_props=sb.List(float),
     icu_prop=float,
     icu_mortality_prop=float,
-    prop_isolated_among_symptomatic=float,
+    prop_detected_among_symptomatic=float,
     # Youth reduced susceiptibility adjustment.
     young_reduced_susceptibility=float,
     reduced_susceptibility_agegroups=sb.List(float),
+    # Time-variant detection (???)
+    tv_detection_b=float,
+    tv_detection_c=float,
+    tv_detection_sigma=float,
     # Mixing matrix
     mixing=sb.DictGeneric(str, sb.Dict(times=list, values=sb.List(float))),
     npi_effectiveness=sb.DictGeneric(str, float),
+    # Something to do with travellers?.
+    traveller_quarantine=sb.Dict(
+        times=sb.List(float),
+        values=sb.List(float),
+    ),
+    # Clinical proportions for imported cases
+    symptomatic_props_imported=float,
+    hospital_props_imported=float,
+    icu_prop_imported=float,
+    prop_detected_among_symptomatic_imported=float,
     # Importation of disease from outside of region.
     importation=sb.Dict(
         active=bool,
+        explicit=bool,
         times=sb.List(float),
         cases=sb.List(float),
         self_isolation_effect=float,
@@ -162,13 +178,6 @@ def build_model(params: dict) -> StratifiedModel:
 
         time_within_compartment_params[param_key] = 1.0 / compartment_periods[compartment]
 
-    # Get initial population: distribute infectious seed across infectious compartments
-    infectious_seed = params["infectious_seed"]
-    total_infectious_times = sum([compartment_periods[c] for c in is_infectious])
-    init_pop = {
-        c: infectious_seed * compartment_periods[c] / total_infectious_times for c in is_infectious
-    }
-
     # Set integration times
     times = params["times"]
     start_time = times["start_time"]
@@ -176,9 +185,12 @@ def build_model(params: dict) -> StratifiedModel:
     time_stemp = times["time_step"]
     integration_times = get_model_times_from_inputs(start_time, end_time, time_stemp)
 
-    # Add flows compartments
     is_importation_active = params["importation"]["active"]
-    flows = preprocess.flows.get_flows(is_importation_active)
+    is_importation_explict = params["importation"]["explicit"]:
+
+    # Add compartmental flows
+    add_import_flow = is_importation_active and not is_importation_explict
+    flows = preprocess.flows.get_flows(add_import_flow=add_import_flow)
 
     # Get the agegroup strata breakpoints.
     agegroup_strata = list(range(0, AGEGROUP_MAX, AGEGROUP_STEP))
@@ -188,6 +200,21 @@ def build_model(params: dict) -> StratifiedModel:
     total_pops, _ = find_population_by_agegroup(input_database, agegroup_strata, country_iso3)
     total_pops = [int(1000.0 * total_pops[agebreak][-1]) for agebreak in list(total_pops.keys())]
     starting_pop = sum(total_pops)
+
+    # Get initial population: distribute infectious seed across infectious compartments
+    infectious_seed = params["infectious_seed"]
+    total_infectious_times = sum([compartment_periods[c] for c in is_infectious])
+    init_pop = {
+        c: infectious_seed * compartment_periods[c] / total_infectious_times for c in is_infectious
+    }
+    # Force the remainder starting population to go to susceptible compartment.
+    # This is required because we set the entry_compartment is late infectious.
+    init_pop[Compartment.SUSCEPTIBLE] = sum(total_pops) - sum(init_pop.values())
+
+    # Choose a birth apprach
+    birth_approach = BirthApproach.NO_BIRTH
+    if is_importation_active and is_importation_explict:
+        birth_approach = BirthApproach.ADD_CRUDE
 
     model_params = {
         "import_secondary_rate": "import_secondary_rate",  # This might be important for some reason.
@@ -203,7 +230,8 @@ def build_model(params: dict) -> StratifiedModel:
         init_pop,
         model_params,
         flows,
-        birth_approach="no_birth",
+        birth_approach=birth_approach,
+        entry_compartment=Compartment.LATE_INFECTIOUS,  # To model imported cases
         starting_population=starting_pop,
         infectious_compartment=[c for c in is_infectious if is_infectious[c]],
     )
@@ -212,7 +240,20 @@ def build_model(params: dict) -> StratifiedModel:
         model.dynamic_mixing_matrix = True
 
     # Set time-variant importation rate
-    if is_importation_active:
+    if is_importation_active and imported_cases_explict:
+        import_times = params["data"]["times_imported_cases"]
+        import_cases = params["data"]["n_imported_cases"]
+        symptomatic_props_imported = params["symptomatic_props_imported"]
+        prop_detected_among_symptomatic_imported = params["prop_detected_among_symptomatic_imported"]
+        model.parameters["crude_birth_rate"] = "crude_birth_rate"
+        model.time_variants["crude_birth_rate"] =  preprocess.importation.get_importation_rate_func_as_birth_rates(
+            import_times,
+            import_cases,
+            symptomatic_props_imported,
+            prop_detected_among_symptomatic_imported,
+            starting_pop,
+        )
+    elif is_importation_active:
         import_params = params["importation"]
         param_name = "import_secondary_rate"
         self_isolation_effect = import_params["self_isolation_effect"]
@@ -266,6 +307,8 @@ def build_model(params: dict) -> StratifiedModel:
         requested_proportions=requested_props,
         mixing_matrix=static_mixing_matrix,
         adjustment_requests=adjust_requests,
+        # FIXME: This seems awfully a lot like a parameter that should go in a YAML file.
+        entry_proportions=preprocess.importation.IMPORTATION_PROPS_BY_AGE,
     )
 
     # Stratify infectious compartment by clinical status
@@ -276,9 +319,6 @@ def build_model(params: dict) -> StratifiedModel:
     """
 
     # Define stratification
-    import pdb
-    from pprint import pprint
-
     strata_to_implement = Clinical.ALL
     compartments_to_split = [Compartment.EARLY_INFECTIOUS, Compartment.LATE_INFECTIOUS]
     #  Get the raw proportions of persons dying and progressing to symptomatic,
@@ -353,11 +393,13 @@ def build_model(params: dict) -> StratifiedModel:
 
     # Set isolation rates as absolute proportions
     # Set the absolute proportions of new cases isolated and not isolated, and indicate to the model where they should be found.
+
+
     # Apply the isolated proportion to the symptomatic non-hospitalised group
-    prop_isolated_among_symptomatic = params["prop_isolated_among_symptomatic"]
+    prop_detected_among_symptomatic = params["prop_detected_among_symptomatic"]
     for i_age, agegroup in enumerate(agegroup_strata):
         prop_isolated = (
-            abs_props["sympt"][i_age] * prop_isolated_among_symptomatic
+            abs_props["sympt"][i_age] * prop_detected_among_symptomatic
             - abs_props["hospital"][i_age]
         ) / abs_props["sympt_non_hospital"][i_age]
         stratification_adjustments["to_infectiousXagegroup_" + agegroup]["sympt_isolate"] = (
@@ -439,7 +481,19 @@ def build_model(params: dict) -> StratifiedModel:
     }
 
     # Add notifications to derived_outputs
-    model.derived_output_functions["notifications"] = outputs.calculate_notifications_covid
+
+    implement_importation = model.parameters["implement_importation"]
+    imported_cases_explict = model.parameters["imported_cases_explict"]
+    symptomatic_props_imported = model.parameters["symptomatic_props_imported"]
+    prop_detected_among_symptomatic_imported = model.parameters[
+        "prop_detected_among_symptomatic_imported"
+    ]
+    model.derived_output_functions["notifications"] = outputs.get_calc_notifications_covid(
+        implement_importation,
+        imported_cases_explict,
+        symptomatic_props_imported,
+        prop_detected_among_symptomatic_imported,
+    )
     model.derived_output_functions["incidence_icu"] = outputs.calculate_incidence_icu_covid
     model.death_output_categories = list_all_strata_for_mortality(model.compartment_names)
 

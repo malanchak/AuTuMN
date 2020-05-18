@@ -5,21 +5,42 @@ from summer.model import StratifiedModel
 from summer.model.utils.string import find_name_components
 
 
-def calculate_notifications_covid(model: StratifiedModel, time: float):
-    """
-    Returns the number of notifications for a given time.
-    The fully stratified incidence outputs must be available before calling this function
-    """
-    notifications_count = 0.0
-    time_idx = model.times.index(time)
-    for key, value in model.derived_outputs.items():
-        is_progress = "progressX" in key
-        # FIXME: Validate with Romain or James that this is correct
-        is_xxx = any([stratum in key for stratum in ["sympt_isolate", "hospital_non_icu", "icu"]])
-        if is_progress and is_xxx:
-            notifications_count += value[time_idx]
+def get_calc_notifications_covid(
+    implement_importation,
+    imported_cases_explict,
+    symptomatic_props_imported,
+    prop_detected_among_symptomatic_imported,
+):
+    def calculate_notifications_covid(model: StratifiedModel, time: float):
+        """
+        Returns the number of notifications for a given time.
+        The fully stratified incidence outputs must be available before calling this function
+        """
+        notifications_count = 0.0
+        time_idx = model.times.index(time)
+        for key, value in model.derived_outputs.items():
+            is_progress = "progressX" in key
+            # FIXME: Validate with Romain or James that this is correct
+            is_xxx = any(
+                [stratum in key for stratum in ["sympt_isolate", "hospital_non_icu", "icu"]]
+            )
+            if is_progress and is_xxx:
+                notifications_count += value[time_idx]
 
-    return notifications_count
+        if implement_importation and imported_cases_explict:
+            prop_imported_detected = (
+                symptomatic_props_imported * prop_detected_among_symptomatic_imported
+            )
+
+            notifications_count += (
+                model.time_variants["crude_birth_rate"](time)
+                * sum(model.compartment_values)
+                * prop_imported_detected
+            )
+
+        return notifications_count
+
+    return calculate_notifications_covid
 
 
 def calculate_incidence_icu_covid(model, time):
