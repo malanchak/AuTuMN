@@ -5,6 +5,8 @@ image_resource:
   type: docker-image
   source: { repository: ubuntu }
 
+inputs:
+  - name: autumn-repo
+
 run:
-  path: echo
-  args: [hello world]
+  path: autumn-repo/scripts/concourse/tasks/hello/hello.sh
