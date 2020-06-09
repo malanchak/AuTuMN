@@ -1,5 +1,5 @@
 #!/bin/bash
-mv autumn-repo autumn-env
+cp -r autumn-repo autumn-env
 cd autumn-env
 pip install virtualenv
 virtualenv env
