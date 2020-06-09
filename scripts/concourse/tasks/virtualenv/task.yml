@@ -1,0 +1,15 @@
+---
+platform: linux
+
+image_resource:
+  type: docker-image
+  source: { repository: python }
+
+inputs:
+  - name: autumn-repo
+
+outputs:
+  - name: autumn-env
+
+run:
+  path: autumn-repo/scripts/concourse/tasks/virtualenv/run.sh
