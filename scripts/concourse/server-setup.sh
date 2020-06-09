@@ -1,3 +1,4 @@
+#!/bin/bash
 # Setup concourse on a new Ubuntu server
 USER=ubuntu
 HOST=52.62.208.189
@@ -47,4 +48,4 @@ cd server
 sudo ./keys/generate.sh
 EOF
 
-./update.sh
+./server-update.sh
