@@ -11,4 +11,4 @@ jobs:
     plan:
       - get: autumn-repo
       - task: hello-world
-        file: autumn-repo/scripts/concourse/tasks/hello.yml
+        file: autumn-repo/scripts/concourse/tasks/hello/task.yml
