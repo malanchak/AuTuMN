@@ -1,10 +1,9 @@
 #!/bin/bash
 # Update all the concourse pipelines
-TARGET=autumn
 . ./envars.secret.sh
 
-fly -t $TARGET sp \
+fly -t autumn sp \
     -c pipelines/pipeline.yml \
-    -v aws_secret_access_key=$AWS_SECRET_ACCESS_KEY \
-    -v aws_access_key_id=$AWS_ACCESS_KEY_ID \
+    -v AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY \
+    -v AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID \
     -p test
