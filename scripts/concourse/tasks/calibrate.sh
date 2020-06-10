@@ -5,6 +5,8 @@ MODEL=$1
 NUM_CHAINS=15
 RUN_TIME=30 # Seconds
 JOB_NAME=$MODEL-$RANDOM
+echo -e "${AWS_SSH_KEY_1}"
+exit 1
 echo -e "${AWS_SSH_KEY_1}${AWS_SSH_KEY_2}" > /root/.ssh/wizard.pem
 autumn-repo/scripts/aws/run.sh run calibrate \
     $JOB_NAME \
