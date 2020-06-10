@@ -18,15 +18,9 @@ autumn-repo/scripts/aws/run.sh run calibrate \
     $NUM_CHAINS \
     $RUN_TIME | tee calibration.log
 
-
-echo "CALIBRATION LOG"
-cat calibration.log
-echo "END CALIBRATION LOG"
-
-
 # Check output log for run name.
 MATCH="Calibration finished for"
-RUN_NAME=$(sed -n "/$MATCH/p" calibration.log | cut -d' ' -f4)
+RUN_NAME=$(sed -n "/$MATCH/p" calibration.log | cut -d' ' -f6)
 if [[ -z "$RUN_NAME" ]]
 then
       echo "Completed run $RUN_NAME"
