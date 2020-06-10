@@ -5,6 +5,7 @@ pushd $SCRIPT_DIR
 if [ ! -d "env" ]
 then
     echo "Installing requirements"
+    pip install virtualenv
     virtualenv -p python3 env
     . env/bin/activate
     pip3 install -r infra/requirements.txt
