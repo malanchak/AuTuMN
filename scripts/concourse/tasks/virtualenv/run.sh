@@ -11,4 +11,5 @@ deactivate
 echo "Testing virtualenv copy"
 cp -r venv autumn-repo/scripts/aws/env
 echo "Testing virtualenv on script"
-autumn-repo/scripts/aws/run.sh
+autumn-repo/scripts/aws/run.sh status
+
