@@ -23,9 +23,9 @@ MATCH="Calibration finished for"
 RUN_NAME=$(sed -n "/$MATCH/p" calibration.log | cut -d' ' -f6)
 if [[ -z "$RUN_NAME" ]]
 then
-      echo "Completed run $RUN_NAME"
-      echo "$RUN_NAME" > run-name.log
-else
       echo "Run for $MODEL failed."
       exit 1
+else
+      echo "Completed run $RUN_NAME"
+      echo "$RUN_NAME" > run-name.log
 fi
