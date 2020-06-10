@@ -15,7 +15,7 @@ autumn-repo/scripts/aws/run.sh run calibrate \
 # Check output log for run name.
 MATCH="Calibration finished for"
 RUN_NAME=$(sed -n "/$MATCH/p" calibration.log | cut -d' ' -f4)
-if [ -z "$RUN_NAME" ]
+if [[ -z "$RUN_NAME" ]]
 then
       echo "Completed run $RUN_NAME"
       echo "$RUN_NAME" > run-name.log
