@@ -11,5 +11,8 @@ inputs:
 outputs:
   - name: venv
 
+caches:
+  - path: venv
+
 run:
   path: autumn-repo/scripts/concourse/tasks/virtualenv/run.sh
