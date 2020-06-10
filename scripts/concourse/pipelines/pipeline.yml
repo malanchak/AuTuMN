@@ -12,6 +12,8 @@ jobs:
       - get: autumn-repo
       - task: setup-env
         file: autumn-repo/scripts/concourse/tasks/virtualenv/task.yml
+      - task: aws-status
+        file: autumn-repo/scripts/concourse/tasks/aws-status/task.yml
         vars:
           AWS_SECRET_ACCESS_KEY: ((AWS_SECRET_ACCESS_KEY))
           AWS_ACCESS_KEY_ID: ((AWS_ACCESS_KEY_ID))

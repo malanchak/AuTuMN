@@ -1,0 +1,17 @@
+---
+platform: linux
+
+image_resource:
+  type: docker-image
+  source: { repository: python }
+
+inputs:
+  - name: autumn-repo
+  - name: venv
+
+params:
+  AWS_SECRET_ACCESS_KEY: ((AWS_SECRET_ACCESS_KEY))
+  AWS_ACCESS_KEY_ID: ((AWS_ACCESS_KEY_ID))
+
+run:
+  path: autumn-repo/scripts/concourse/tasks/aws-status/run.sh

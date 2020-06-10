@@ -7,11 +7,3 @@ virtualenv venv
 . venv/bin/activate
 pip install -r autumn-repo/scripts/aws/infra/requirements.txt
 deactivate
-
-echo "Testing virtualenv copy"
-cp -r venv autumn-repo/scripts/aws/env
-
-printenv | sort
-
-echo "Testing virtualenv on script"
-autumn-repo/scripts/aws/run.sh status
