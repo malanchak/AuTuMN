@@ -5,7 +5,7 @@ HOST=52.62.208.189
 # Copy files to server
 scp -i ~/.ssh/wizard.pem -r server $USER@$HOST:/home/$USER
 ssh -i ~/.ssh/wizard.pem $USER@$HOST /bin/bash <<-EOF
-cd server
+cd /home/ubuntu/server/
 sudo cp nginx.conf /etc/nginx/nginx.conf
 sudo nginx -s reload
 sudo docker stack deploy --compose-file docker-compose.yml concourse
