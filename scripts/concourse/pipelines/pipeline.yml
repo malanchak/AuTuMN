@@ -6,11 +6,10 @@ resources:
       branch: concourse
 
 jobs:
-  - name: test-job
-    public: true
+  - name: calibrate
     plan:
       - get: autumn-repo
-      - task: aws-status
+      - task: run-calibration
         config:
           platform: linux
           image_resource:
@@ -22,5 +21,5 @@ jobs:
             AWS_SECRET_ACCESS_KEY: ((AWS_SECRET_ACCESS_KEY))
             AWS_ACCESS_KEY_ID: ((AWS_ACCESS_KEY_ID))
           run:
-            path: autumn-repo/scripts/aws/run.sh
-            args: ["status"]
+            path: autumn-repo/scripts/concourse/tasks/calibrate.sh
+            args: ["((model))"]
