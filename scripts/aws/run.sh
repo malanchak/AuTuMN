@@ -11,8 +11,13 @@ then
 fi
 echo "this works!!!"
 . env/bin/activate
+echo "Python"
 which python
 which pip
 pip freeze
+echo "Python3"
+which python3
+which pip3
+pip3 freeze
 python3 -m infra $@
 popd
