@@ -5,4 +5,5 @@ export ADMIN_USERNAME=xxx
 export ADMIN_PASSWORD=xxx
 export AWS_ACCESS_KEY_ID=xxx
 export AWS_SECRET_ACCESS_KEY=xxx
-
+export AWS_SSH_KEY_1=xxx
+export AWS_SSH_KEY_2=xxx

@@ -21,8 +21,6 @@ sudo docker run \
     --stop-signal SIGUSR2 \
     --network concourse_network \
     --env=CONCOURSE_TSA_HOST=web:2222 \
-    --env AWS_ACCESS_KEY_ID \
-    --env AWS_SECRET_ACCESS_KEY \
     --restart=always \
     --detach=true \
     --name=concourse_worker \

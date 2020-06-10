@@ -20,6 +20,8 @@ jobs:
           params:
             AWS_SECRET_ACCESS_KEY: ((AWS_SECRET_ACCESS_KEY))
             AWS_ACCESS_KEY_ID: ((AWS_ACCESS_KEY_ID))
+            AWS_SSH_KEY_1: ((AWS_SSH_KEY_1))
+            AWS_SSH_KEY_2: ((AWS_SSH_KEY_2))
           run:
             path: autumn-repo/scripts/concourse/tasks/calibrate.sh
             args: ["((model))"]
