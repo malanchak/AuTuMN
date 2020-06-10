@@ -9,6 +9,7 @@ then
     . env/bin/activate
     pip3 install -r infra/requirements.txt
 fi
+echo "this works!!!"
 . env/bin/activate
 which python
 which pip
