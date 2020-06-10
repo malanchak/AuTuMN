@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 ls
 cp -r venv autumn-repo/scripts/aws/env
 ls autumn-repo/scripts/aws
