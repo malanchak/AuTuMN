@@ -10,5 +10,8 @@ then
     pip3 install -r infra/requirements.txt
 fi
 . env/bin/activate
+which python
+which pip
+pip freeze
 python3 -m infra $@
 popd
