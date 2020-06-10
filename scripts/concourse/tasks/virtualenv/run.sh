@@ -2,16 +2,11 @@
 set -e
 ls -la
 echo "Installing AWS CLI script requirements."
-if [ ! -d "venv/bin" ]
-then
-    echo "No virtualenv found - creating a new one."
-    rm -rf venv
-    pip install virtualenv
-    virtualenv venv
-else
-    echo "Already found virtualenv."
-fi
-echo "Installing requirements"
+echo "Creating virtualenv"
+ls -la
+ls -la venv
+pip install virtualenv
+virtualenv venv
 ls -la
 ls -la venv
 ls -la venv/bin
