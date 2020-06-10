@@ -7,13 +7,13 @@ then
     echo "No virtualenv found - creating a new one."
     pip install virtualenv
     virtualenv venv
-    ls -la
-    ls -la venv
-    ls -la venv/bin
 else
     echo "Already found virtualenv."
 fi
 echo "Installing requirements"
+ls -la
+ls -la venv
+ls -la venv/bin
 . venv/bin/activate
 which python
 which python3
