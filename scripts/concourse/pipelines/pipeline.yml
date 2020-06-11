@@ -5,13 +5,13 @@ resource_types:
       repository: swce/keyval-resource
 
 resources:
+  - name: keyval
+    type: keyval
   - name: autumn-repo
     type: git
     source:
       uri: https://github.com/monash-emu/AuTuMN.git
       branch: concourse
-  - name: keyval
-    type: keyval
 
 jobs:
   - name: calibrate
@@ -34,24 +34,25 @@ jobs:
       - put: keyval
         params:
           file: run-name.log
-      - name: testytest
-        plan:
-          - get: autumn-repo
-          - get: keyval
-          - task: run-full-models
-            config:
-              platform: linux
-              image_resource:
-                type: docker-image
-                source: { repository: python }
-              params:
-                AWS_SECRET_ACCESS_KEY: ((AWS_SECRET_ACCESS_KEY))
-                AWS_ACCESS_KEY_ID: ((AWS_ACCESS_KEY_ID))
-                AWS_SSH_KEY_1: ((AWS_SSH_KEY_1))
-                AWS_SSH_KEY_2: ((AWS_SSH_KEY_2))
-              run:
-                path: cat
-                args: ["run-name.log"]
+
+  - name: testytest
+    plan:
+      - get: autumn-repo
+      - get: keyval
+      - task: run-full-models
+        config:
+          platform: linux
+          image_resource:
+            type: docker-image
+            source: { repository: python }
+          params:
+            AWS_SECRET_ACCESS_KEY: ((AWS_SECRET_ACCESS_KEY))
+            AWS_ACCESS_KEY_ID: ((AWS_ACCESS_KEY_ID))
+            AWS_SSH_KEY_1: ((AWS_SSH_KEY_1))
+            AWS_SSH_KEY_2: ((AWS_SSH_KEY_2))
+          run:
+            path: cat
+            args: ["run-name.log"]
   # - name: full-models
   #   plan:
   #     - get: autumn-repo
