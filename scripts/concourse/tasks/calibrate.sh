@@ -5,7 +5,7 @@ MODEL=$1
 NUM_CHAINS=15
 RUN_TIME=30 # Seconds
 JOB_NAME=$MODEL-$RANDOM
-
+printenv
 mkdir metadata
 echo "TEST-RUN-NAME" > metadata/run-name.log
 
