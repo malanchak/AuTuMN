@@ -23,6 +23,8 @@ jobs:
           image_resource:
             type: docker-image
             source: { repository: python }
+          inputs:
+            - name: autumn-repo
           params:
             AWS_SECRET_ACCESS_KEY: ((AWS_SECRET_ACCESS_KEY))
             AWS_ACCESS_KEY_ID: ((AWS_ACCESS_KEY_ID))
@@ -33,8 +35,7 @@ jobs:
             args: ["((model))"]
       - put: keyval
         params:
-          file: run-name.log
-
+          file: metadata/run-name.log
   - name: testytest
     plan:
       - get: autumn-repo
@@ -45,6 +46,9 @@ jobs:
           image_resource:
             type: docker-image
             source: { repository: python }
+          inputs:
+            - name: autumn-repo
+            - name: metadata
           params:
             AWS_SECRET_ACCESS_KEY: ((AWS_SECRET_ACCESS_KEY))
             AWS_ACCESS_KEY_ID: ((AWS_ACCESS_KEY_ID))
@@ -52,42 +56,42 @@ jobs:
             AWS_SSH_KEY_2: ((AWS_SSH_KEY_2))
           run:
             path: cat
-            args: ["run-name.log"]
-  # - name: full-models
-  #   plan:
-  #     - get: autumn-repo
-  #     - task: run-full-models
-  #       config:
-  #         platform: linux
-  #         image_resource:
-  #           type: docker-image
-  #           source: { repository: python }
-  #         inputs:
-  #           - name: autumn-repo
-  #           - name: run-name.log
-  #         params:
-  #           AWS_SECRET_ACCESS_KEY: ((AWS_SECRET_ACCESS_KEY))
-  #           AWS_ACCESS_KEY_ID: ((AWS_ACCESS_KEY_ID))
-  #           AWS_SSH_KEY_1: ((AWS_SSH_KEY_1))
-  #           AWS_SSH_KEY_2: ((AWS_SSH_KEY_2))
-  #         run:
-  #           path: autumn-repo/scripts/concourse/tasks/full.sh
-  # - name: powerbi
-  #   plan:
-  #     - get: autumn-repo
-  #     - task: run-powerbi
-  #       config:
-  #         platform: linux
-  #         image_resource:
-  #           type: docker-image
-  #           source: { repository: python }
-  #         inputs:
-  #           - name: autumn-repo
-  #           - name: run-name.log
-  #         params:
-  #           AWS_SECRET_ACCESS_KEY: ((AWS_SECRET_ACCESS_KEY))
-  #           AWS_ACCESS_KEY_ID: ((AWS_ACCESS_KEY_ID))
-  #           AWS_SSH_KEY_1: ((AWS_SSH_KEY_1))
-  #           AWS_SSH_KEY_2: ((AWS_SSH_KEY_2))
-  #         run:
-  #           path: autumn-repo/scripts/concourse/tasks/full.sh
+            args: ["metadata/run-name.log"]
+# - name: full-models
+#   plan:
+#     - get: autumn-repo
+#     - task: run-full-models
+#       config:
+#         platform: linux
+#         image_resource:
+#           type: docker-image
+#           source: { repository: python }
+#         inputs:
+#           - name: autumn-repo
+#           - name: run-name.log
+#         params:
+#           AWS_SECRET_ACCESS_KEY: ((AWS_SECRET_ACCESS_KEY))
+#           AWS_ACCESS_KEY_ID: ((AWS_ACCESS_KEY_ID))
+#           AWS_SSH_KEY_1: ((AWS_SSH_KEY_1))
+#           AWS_SSH_KEY_2: ((AWS_SSH_KEY_2))
+#         run:
+#           path: autumn-repo/scripts/concourse/tasks/full.sh
+# - name: powerbi
+#   plan:
+#     - get: autumn-repo
+#     - task: run-powerbi
+#       config:
+#         platform: linux
+#         image_resource:
+#           type: docker-image
+#           source: { repository: python }
+#         inputs:
+#           - name: autumn-repo
+#           - name: run-name.log
+#         params:
+#           AWS_SECRET_ACCESS_KEY: ((AWS_SECRET_ACCESS_KEY))
+#           AWS_ACCESS_KEY_ID: ((AWS_ACCESS_KEY_ID))
+#           AWS_SSH_KEY_1: ((AWS_SSH_KEY_1))
+#           AWS_SSH_KEY_2: ((AWS_SSH_KEY_2))
+#         run:
+#           path: autumn-repo/scripts/concourse/tasks/full.sh

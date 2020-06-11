@@ -6,8 +6,8 @@ NUM_CHAINS=15
 RUN_TIME=30 # Seconds
 JOB_NAME=$MODEL-$RANDOM
 
-
-echo "TEST-RUN-NAME" > run-name.log
+mkdir metadata
+echo "TEST-RUN-NAME" > metadata/run-name.log
 
 # # Get SSH key for AWS instances
 # mkdir -p /root/.ssh/
