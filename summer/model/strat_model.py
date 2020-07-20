@@ -214,31 +214,39 @@ class StratifiedModel(EpiModel):
         verbose: bool = False,
     ):
         """
-        calls to initial preparation, checks and methods that stratify the various aspects of the model
+        Apply a stratification to the model's compartments.
 
-        :param stratification_name:
-            see prepare_and_check_stratification
-        :param strata_request:
-            see find_strata_names_from_input
-        :param compartment_types_to_stratify:
-            see check_compartment_request
-        :param adjustment_requests:
-            see incorporate_alternative_overwrite_approach and check_parameter_adjustment_requests
-        :param requested_proportions:
-            see prepare_starting_proportions
-        :param entry_proportions:
+        stratification_name: The name of the stratification
+        strata_names: The names of the strata to apply
+        compartment_types_to_stratify: The compartments that will have the stratification applied. Falsey args interpreted as "all".
+        requested_proportions: Request to split existing population in the compartments according to specific proprotions
+        entry_proportions: TODO
+        adjustment_requests: TODO
+        infectiousness_adjustments: TODO
+        mixing_matrix: TODO
+        target_props: TODO
+        verbose: TODO
 
-        :param infectiousness_adjustments:
+        ====== THINGS MATT BROKE ======
+        removed ability to just pass an int as strata_names and get an array from 1-N magically
 
-        :param mixing_matrix:
-            see check_mixing
-        :param verbose: bool
-            whether to report on progress
-            note that this can be changed at this stage from what was requested at the original unstratified model
-                construction
-        :param target_props: dict
-            keys are the strata being implemented at this call to stratify
-            values are the desired proportions to target
+        ====== VALIDATION TODOS ======
+        TODO: validate that stratification name is a str
+        TODO: target_proportions must be a dict
+        TODO: all keys of target_proportions must be a type of strata requested as a part of this stratification
+        TODO: check that user isn't re-creating a stratification with the same name
+        TODO: strata_names cannot be a float, it can be an int(represents 1-N), it can be a list (which be co-erced to a string)
+        TODO: comparemntcompartment_types must be valid compartments
+        TODO: AGE SPECIFIC VALIDATION TODOS
+        TODO: ensure that IF age stratification is requested, THEN user cannot speccompartment_types"
+              ie. age stratification must apply to all compartments.
+        TODO: all age strata must be int or float
+        TODO: 0 must be in age strata request - represents those ages 0 to <next lowest age?
+        TODO: Validate that all adjustment request parameters and strata actually exist already
+        FIXME: No validation of entry proportions sanity
+        OTHER NOTES
+        self.full_stratification_list keeps track of comparements that are not partially stratified
+        self.all_stratifications keeps track of all stratifications and their strata
         """
         if not compartment_types_to_stratify:
             # Stratify all compartments.
