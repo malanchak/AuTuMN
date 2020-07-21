@@ -29,6 +29,7 @@ from .string import (
     find_stem,
     find_stratum_index_from_string,
 )
+from .validation import validate_stratify, validate_model
 
 
 def get_all_proportions(names, proportions):

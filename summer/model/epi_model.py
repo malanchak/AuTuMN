@@ -102,8 +102,6 @@ class EpiModel:
     :attribute transition_indices_to_implement: list
         indices of the transition indices to be implemented because applicable to the final level of stratification
     :attribute unstratified_flows:
-    :attribute verbose: bool
-        whether to output progress in model construction as this process proceeds
     """
 
     """
@@ -117,8 +115,7 @@ class EpiModel:
 
         :param: comment: string for the comment to be displayed to the user
         """
-        if self.verbose:
-            logger.info(comment)
+        logger.info(comment)
 
     """
     model construction methods
@@ -133,7 +130,6 @@ class EpiModel:
         requested_flows,
         infectious_compartment=(Compartment.EARLY_INFECTIOUS,),
         birth_approach=BirthApproach.NO_BIRTH,
-        verbose=False,
         reporting_sigfigs=4,
         entry_compartment=Compartment.SUSCEPTIBLE,
         starting_population=1,
@@ -181,7 +177,6 @@ class EpiModel:
         self.starting_population = starting_population
         self.ticker = ticker
         self.times = times
-        self.verbose = verbose
         validate_model(self)
         self.setup_initial_compartment_values()
         self.setup_flows()

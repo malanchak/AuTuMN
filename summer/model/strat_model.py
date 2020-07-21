@@ -139,7 +139,6 @@ class StratifiedModel(EpiModel):
         requested_flows,
         infectious_compartment=(Compartment.EARLY_INFECTIOUS,),
         birth_approach=BirthApproach.NO_BIRTH,
-        verbose=False,
         reporting_sigfigs=4,
         entry_compartment=Compartment.SUSCEPTIBLE,
         starting_population=1,
@@ -156,7 +155,6 @@ class StratifiedModel(EpiModel):
             requested_flows,
             infectious_compartment,
             birth_approach,
-            verbose,
             reporting_sigfigs,
             entry_compartment,
             starting_population,
@@ -165,36 +163,43 @@ class StratifiedModel(EpiModel):
             derived_output_functions,
             ticker,
         )
-        self.full_stratification_list = []
-        self.removed_compartments = []
         self.overwrite_parameters = []
-        self.compartment_types_to_stratify = []
         self.strains = []
-        self.mixing_categories = []
-        self.unstratified_compartment_names = []
+
+        self.full_stratification_list = []
         self.all_stratifications = {}
-        self.infectiousness_adjustments = {}
+
         self.final_parameter_functions = {}
         self.adaptation_functions = {}
+
+        #  ???
+        self.available_death_rates = [""]
         self.infectiousness_levels = {}
         self.infectious_indices = {}
         self.infectious_compartments = {}
         self.infectiousness_multipliers = {}
         self.parameter_components = {}
         self.mortality_components = {}
-        self.infectious_populations = {}
-        self.strain_mixing_elements = {}
-        self.strain_mixing_multipliers = {}
         self.strata_indices = {}
         self.target_props = {}
-        self.cumulative_target_props = {}
-        self.individual_infectiousness_adjustments = []
+
+        # Strain stuff
+        self.strain_mixing_elements = {}
+        self.strain_mixing_multipliers = {}
+
+        # Mixing matrix
+        self.mixing_categories = []
         self.heterogeneous_mixing = False
         self.mixing_matrix = None
-        self.available_death_rates = [""]
         self.dynamic_mixing_matrix = False
         self.mixing_indices = {}
+
+        # Finding infectious population
+        self.infectious_populations = {}
         self.infectious_denominators = []
+
+        # Something something infectious something
+        self.individual_infectiousness_adjustments = []
 
     """
     stratification methods
@@ -211,7 +216,6 @@ class StratifiedModel(EpiModel):
         infectiousness_adjustments: Dict[str, float] = {},
         mixing_matrix: numpy.ndarray = None,
         target_props: Dict[str, Dict[str, float]] = None,
-        verbose: bool = False,
     ):
         """
         Apply a stratification to the model's compartments.
@@ -225,47 +229,37 @@ class StratifiedModel(EpiModel):
         infectiousness_adjustments: TODO
         mixing_matrix: TODO
         target_props: TODO
-        verbose: TODO
 
         ====== THINGS MATT BROKE ======
         removed ability to just pass an int as strata_names and get an array from 1-N magically
 
         ====== VALIDATION TODOS ======
         - universal death rate param can only be stratified/adjusted when strat is applied to all compartment types
-        - validate that stratification name is a str
-        - target_proportions must be a dict
         - all keys of target_proportions must be a type of strata requested as a part of this stratification
-        - check that user isn't re-creating a stratification with the same name
-        - strata_names cannot be a float, it can be an int(represents 1-N), it can be a list (which be co-erced to a string)
-        - comparemntcompartment_types must be valid compartments
-        - AGE SPECIFIC VALIDATION TODOS
-        - ensure that IF age stratification is requested, THEN user cannot speccompartment_types"
-              ie. age stratification must apply to all compartments.
-        - all age strata must be int or float
-        - 0 must be in age strata request - represents those ages 0 to <next lowest age?
-        - Validate that all adjustment request parameters and strata actually exist already
+       - Validate that all adjustment request parameters and strata actually exist already
 
-        - mixing matrix may be None
-        - matrix must be square, 2d, sized to number of strata being implemented and ndarray
 
-        - infectiousness_adjustments must be a dict
-        - all keys of infectiousness adjustments must be in strata being implemented
-
-        - stratum must be in target props
-        - target props value for stratum must be float, int or str
-        - it it's a str then there must be a time variant for it
-
-        FIXME: No validation of entry proportions sanity
         OTHER NOTES
         self.full_stratification_list keeps track of comparements that are not partially stratified
         self.all_stratifications keeps track of all stratifications and their strata
         """
+        utils.validate_stratify(
+            self,
+            stratification_name,
+            strata_request,
+            compartment_types_to_stratify,
+            requested_proportions,
+            entry_proportions,
+            adjustment_requests,
+            infectiousness_adjustments,
+            mixing_matrix,
+            target_props,
+        )
         if not compartment_types_to_stratify:
             # Stratify all compartments.
-            self.compartment_types_to_stratify = self.compartment_types
+            compartment_types_to_stratify = self.compartment_types
             self.full_stratification_list.append(stratification_name)
-        else:
-            self.compartment_types_to_stratify = compartment_types_to_stratify
+
         # Check age stratification
         if stratification_name == "age":
             # Ensure age strata are sorted... for some reason?
@@ -282,13 +276,13 @@ class StratifiedModel(EpiModel):
         )
 
         # Retain copy of compartment names in their stratified form to refer back to during stratification process
-        self.unstratified_compartment_names = copy.copy(self.compartment_names)
+        unstratified_compartment_names = copy.copy(self.compartment_names)
 
         # Stratify compartments, split according to split_proportions
         to_add, to_remove = utils.get_stratified_compartments(
             stratification_name,
             strata_names,
-            self.compartment_types_to_stratify,
+            compartment_types_to_stratify,
             requested_proportions,
             self.compartment_names,
             self.compartment_values,
@@ -309,7 +303,7 @@ class StratifiedModel(EpiModel):
             # This comes first, so that the compartment names remain in the unstratified form
             # .... why do we need that?
             ageing_params, ageing_flows = utils.create_ageing_flows(
-                strata_names, self.unstratified_compartment_names, len(self.all_stratifications)
+                strata_names, unstratified_compartment_names, len(self.all_stratifications)
             )
             self.transition_flows = self.transition_flows.append(ageing_flows, ignore_index=True)
             self.parameters.update(ageing_params)
@@ -324,7 +318,7 @@ class StratifiedModel(EpiModel):
             stratification_name,
             strata_names,
             adjustment_requests,
-            self.compartment_types_to_stratify,
+            compartment_types_to_stratify,
             list(self.transition_flows.T.to_dict().values()),
             len(self.all_stratifications),
         )
@@ -343,7 +337,7 @@ class StratifiedModel(EpiModel):
             self.transition_flows = self.transition_flows.append(new_flows, ignore_index=True)
 
         # Stratify the entry flows
-        if self.entry_compartment in self.compartment_types_to_stratify:
+        if self.entry_compartment in compartment_types_to_stratify:
             param_updates, time_variant_updates = utils.stratify_entry_flows(
                 stratification_name, strata_names, entry_proportions, self.time_variants,
             )
@@ -359,7 +353,7 @@ class StratifiedModel(EpiModel):
                 stratification_name,
                 strata_names,
                 adjustment_requests,
-                self.compartment_types_to_stratify,
+                compartment_types_to_stratify,
                 list(self.death_flows.T.to_dict().values()),
                 len(self.all_stratifications),
             )
@@ -378,7 +372,7 @@ class StratifiedModel(EpiModel):
                 stratification_name,
                 strata_names,
                 adjustment_requests,
-                self.compartment_types_to_stratify,
+                compartment_types_to_stratify,
                 self.time_variants,
                 self.parameters,
             )
@@ -412,12 +406,30 @@ class StratifiedModel(EpiModel):
                 target_props,
                 stratification_name,
                 strata_names,
-                self.unstratified_compartment_names,
+                unstratified_compartment_names,
                 len(self.all_stratifications),
             )
             self.target_props[stratification_name] = strat_target_props
             if new_flows:
                 self.transition_flows = self.transition_flows.append(new_flows, ignore_index=True)
+
+        # Things that change
+        self.parameters
+        self.time_variants
+        self.death_flows
+        self.adaptation_functions
+        self.available_death_rates
+        self.overwrite_parameters
+        self.strains
+        self.transition_flows
+        self.target_props
+        self.infectiousness_levels
+        self.mixing_matrix
+        self.mixing_categories
+        self.compartment_names
+        self.compartment_values
+        self.full_stratification_list
+        self.all_stratifications
 
     """
     pre-integration methods
@@ -884,6 +896,7 @@ class StratifiedModel(EpiModel):
         else:
             mixing_categories = self.mixing_categories
 
+        # Finding infectious population
         self.infectious_denominators = compartment_values[self.mixing_indices_arr].sum(axis=1)
         self.infectious_populations = find_infectious_populations(
             compartment_values,
@@ -914,9 +927,15 @@ class StratifiedModel(EpiModel):
             [1.0] if self.mixing_matrix is None else self.mixing_matrix[force_index, :]
         )
         denominator = (
-            [1.0] * len(self.infectious_denominators)
+            [1.0]
+            * len(
+                # Finding infectious population
+                self.infectious_denominators
+            )
             if "_density" in flow_type
-            else self.infectious_denominators
+            else
+            # Finding infectious population
+            self.infectious_denominators
         )
 
         return sum(

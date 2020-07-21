@@ -204,7 +204,6 @@ bad_inputs = [
     {"starting_population": "this should be an integer"},
     {"times": "this should be a list"},
     {"birth_approach": 0},  # Should be a string
-    {"verbose": "this should be a bool"},
     {"derived_output_functions": "this should be a dict"},
     # Infectious compartment not in compartment types
     {"infectious_compartment": ("D",)},

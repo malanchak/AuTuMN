@@ -42,15 +42,10 @@ def _get_model():
             {"type": "compartment_death", "parameter": "infect_death", "origin": "infectious",},
         ],
         output_connections={},
-        verbose=False,
     )
 
     model.stratify(
-        "strain",
-        ["sensitive", "resistant"],
-        ["infectious"],
-        requested_proportions={},
-        verbose=False,
+        "strain", ["sensitive", "resistant"], ["infectious"], requested_proportions={},
     )
 
     age_mixing = None
@@ -62,7 +57,6 @@ def _get_model():
         {"recovery": {"1": 0.5, "10": 0.8}},
         infectiousness_adjustments={"1": 0.8},
         mixing_matrix=age_mixing,
-        verbose=False,
     )
 
     model.run_model(integration_type=IntegrationType.ODE_INT)

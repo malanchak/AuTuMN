@@ -2,7 +2,11 @@
 Functions to validate the inputs to a model.
 Validation performed using Cerberus: https://docs.python-cerberus.org/en/stable/index.html
 """
+from typing import List
+
 from cerberus import Validator
+import numpy as np
+
 
 from summer.constants import (
     Compartment,
@@ -11,6 +15,152 @@ from summer.constants import (
     Stratification,
     IntegrationType,
 )
+
+
+def validate_stratify(
+    model,
+    stratification_name,
+    strata_request,
+    compartment_types_to_stratify,
+    requested_proportions,
+    entry_proportions,
+    adjustment_requests,
+    infectiousness_adjustments,
+    mixing_matrix,
+    target_props,
+):
+    schema = get_stratify_schema(
+        model, stratification_name, strata_request, compartment_types_to_stratify
+    )
+    validator = Validator(schema, allow_unknown=True, require_all=True)
+    stratify_data = {
+        "stratification_name": stratification_name,
+        "strata_request": strata_request,
+        "compartment_types_to_stratify": compartment_types_to_stratify,
+        "requested_proportions": requested_proportions,
+        "entry_proportions": entry_proportions,
+        "adjustment_requests": adjustment_requests,
+        "infectiousness_adjustments": infectiousness_adjustments,
+        "mixing_matrix": mixing_matrix,
+        "target_props": target_props,
+    }
+    is_valid = validator.validate(stratify_data)
+    if not is_valid:
+        errors = validator.errors
+        raise ValidationException(errors)
+
+
+def get_stratify_schema(model, stratification_name, strata_names, compartment_types_to_stratify):
+    """
+    Schema used to validate model attributes during initialization.
+    """
+    strata_names_strs = [str(s) for s in strata_names]
+    return {
+        "stratification_name": {
+            "type": "string",
+            "forbidden": list(model.all_stratifications.keys()),
+        },
+        "strata_request": {
+            "type": "list",
+            "check_with": check_strata_request(stratification_name, compartment_types_to_stratify),
+            "schema": {"type": ["string", "integer"]},
+        },
+        "compartment_types_to_stratify": {
+            "type": "list",
+            "schema": {"type": "string"},
+            "allowed": model.compartment_types,
+        },
+        "requested_proportions": {
+            "type": "dict",
+            "valuesrules": {"type": ["integer", "float"]},
+            "keysrules": {"allowed": strata_names_strs},
+        },
+        # TODO: Sanity check the values of entry_proportions somehow
+        "entry_proportions": {
+            "type": "dict",
+            "valuesrules": {
+                "type": ["integer", "float", "string"],
+                "check_with": check_time_variant_key(model.time_variants),
+            },
+            "keysrules": {"allowed": strata_names_strs},
+        },
+        "adjustment_requests": {
+            "type": "dict",
+            "keysrules": {"allowed": list(model.parameters.keys())},
+            "valuesrules": {
+                "type": "dict",
+                "keysrules": {"allowed": strata_names_strs + [f"{s}W" for s in strata_names_strs]},
+                "valuesrules": {
+                    "type": ["integer", "float", "string"],
+                    "check_with": check_time_variant_key(model.time_variants),
+                },
+            },
+        },
+        "infectiousness_adjustments": {
+            "type": "dict",
+            "valuesrules": {"type": ["integer", "float"]},
+            "keysrules": {"allowed": strata_names_strs},
+        },
+        "mixing_matrix": {"nullable": True, "check_with": check_mixing_matrix(strata_names)},
+        "target_props": {
+            "nullable": True,
+            "type": "dict",
+            "keysrules": {"allowed": list(model.parameters.keys())},
+            "valuesrules": {
+                "type": "dict",
+                "keysrules": {"allowed": strata_names_strs},
+                "valuesrules": {
+                    "type": ["integer", "float", "string"],
+                    "check_with": check_time_variant_key(model.time_variants),
+                },
+            },
+        },
+    }
+
+
+def check_strata_request(strat_name, compartment_types_to_stratify):
+    """
+    Strata requested must be well formed.
+    """
+
+    def _check(field, value, error):
+        if strat_name == "age":
+            if not min([int(s) for s in value]) == 0:
+                error(field, "First age strata must be '0'")
+            if compartment_types_to_stratify:
+                error(field, "Age stratification must be applied to all compartments")
+
+    return _check
+
+
+def check_time_variant_key(time_variants: dict):
+    """
+    Ensure value is a key in time variants if it is a string
+    """
+
+    def _check(field, value, error):
+        if type(value) is str and value not in time_variants:
+            error(field, "String value must be found in time variants dict.")
+
+    return _check
+
+
+def check_mixing_matrix(strata_names: List[str]):
+    """
+    Ensure mixing matrix is correctly specified
+    """
+    num_strata = len(strata_names)
+
+    def _check(field, value, error):
+        if value is None:
+            return  # This is fine
+
+        if not type(value) is np.ndarray:
+            error(field, "Mixing matrix must be Numpy array (or None)")
+        elif value.shape != (num_strata, num_strata):
+            error(field, f"Mixing matrix must have shape ({num_strata}, {num_strata})")
+
+    return _check
 
 
 def validate_model(model):
@@ -31,7 +181,6 @@ def get_model_schema(model):
     Schema used to validate model attributes during initialization.
     """
     return {
-        "verbose": {"type": "boolean"},
         "ticker": {"type": "boolean"},
         "reporting_sigfigs": {"type": "integer"},
         "starting_population": {"type": "integer"},

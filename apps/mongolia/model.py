@@ -292,7 +292,6 @@ def build_model(params: dict) -> StratifiedModel:
             "strain",
             ["ds", "mdr"],
             ["early_latent", "late_latent", "infectious"],
-            verbose=False,
             requested_proportions={"mdr": 0.0},
             adjustment_requests={
                 "contact_rate": {"ds": 1.0, "mdr": 1.0},
@@ -387,7 +386,6 @@ def build_model(params: dict) -> StratifiedModel:
             {},
             adjustment_requests=age_params,
             infectiousness_adjustments=age_infectiousness,
-            verbose=False,
         )
 
         # patch for IPT to overwrite parameters when ds_ipt has been turned off while we still need some coverage at baseline
@@ -422,7 +420,6 @@ def build_model(params: dict) -> StratifiedModel:
             ["smearpos", "smearneg", "extrapul"],
             ["infectious"],
             infectiousness_adjustments={"smearpos": 1.0, "smearneg": 0.25, "extrapul": 0.0,},
-            verbose=False,
             requested_proportions=props_smear,
             adjustment_requests={
                 "recovery": recovery_adjustments,
@@ -489,7 +486,6 @@ def build_model(params: dict) -> StratifiedModel:
             ["rural_province", "urban_nonger", "urban_ger", "prison"],
             [],
             requested_proportions=props_location,
-            verbose=False,
             entry_proportions=props_location,
             adjustment_requests=location_adjustments,
             mixing_matrix=location_mixing,
