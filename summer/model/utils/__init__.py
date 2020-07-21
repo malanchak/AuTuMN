@@ -1,5 +1,7 @@
 from typing import List, Tuple, Dict, Callable
 
+import numpy as np
+
 from .age_stratification import add_zero_to_age_breakpoints, split_age_parameter
 from .data_structures import (
     convert_boolean_list_to_indices,
@@ -388,3 +390,142 @@ def get_adjusted_parameter(
             overwritten_parameter_adjustment_names.append(adjusted_param_name)
 
     return adjusted_param_name
+
+
+def stratify_universal_death_rate(
+    stratification_name: str,
+    strata_names: List[str],
+    compartment_types_to_stratify: List[str],
+    adjustment_requests: Dict[str, Dict[str, float]],
+    time_variants: dict,
+    parameters: dict,
+):
+    """
+    stratify the approach to universal, population-wide deaths (which can be made to vary by stratum)
+    adjust every parameter that refers to the universal death rate, according to user request if submitted and
+        otherwise populated with a value of one by default
+    """
+    available_death_rates = []
+    overwritten_parameter_adjustment_names = []
+    adaptation_function_updates = {}
+
+    # ensure baseline function available for modification in universal death rates
+    if "universal_death_rate" in time_variants:
+        adaptation_function_updates["universal_death_rateX"] = time_variants["universal_death_rate"]
+    else:
+        adaptation_function_updates["universal_death_rateX"] = lambda time: parameters[
+            "universal_death_rate"
+        ]
+
+    for stratum in strata_names:
+        if (
+            "universal_death_rate" in adjustment_requests
+            and stratum in adjustment_requests["universal_death_rate"]
+        ):
+            stratum_name = create_stratum_name(stratification_name, stratum, joining_string="")
+            available_death_rates.append(stratum_name)
+
+            # use existing function or create new one from constant as needed
+            if type(adjustment_requests["universal_death_rate"][stratum]) == str:
+                adaptation_function_updates["universal_death_rateX" + stratum_name] = time_variants[
+                    adjustment_requests["universal_death_rate"][stratum]
+                ]
+            elif isinstance(adjustment_requests["universal_death_rate"][stratum], (int, float)):
+                adaptation_function_updates[
+                    "universal_death_rateX" + stratum_name
+                ] = create_multiplicative_function(
+                    time_variants[adjustment_requests["universal_death_rate"][stratum]]
+                )
+
+            # record the parameters that over-write the less stratified parameters closer to the trunk of the tree
+            if (
+                OVERWRITE_KEY in adjustment_requests["universal_death_rate"]
+                and stratum in adjustment_requests["universal_death_rate"][OVERWRITE_KEY]
+            ):
+                overwritten_parameter_adjustment_names.append(
+                    create_stratified_name("universal_death_rate", stratification_name, stratum)
+                )
+
+    return (
+        available_death_rates,
+        adaptation_function_updates,
+        overwritten_parameter_adjustment_names,
+    )
+
+
+def combine_mixing_matrix(
+    old_mixing_categories, old_mixing_matrix, new_mixing_matrix, stratification_name, strata_names
+):
+    """
+    master mixing matrix function to take in a new mixing matrix and combine with the existing ones
+    """
+
+    # if no mixing matrix yet, just convert the existing one to a dataframe
+    if old_mixing_matrix is None:
+        mixing_categories = [stratification_name + "_" + i for i in strata_names]
+        combined_mixing_matrix = new_mixing_matrix
+
+    # otherwise take the kronecker product to get the new mixing matrix
+    else:
+        mixing_categories = [
+            old_strata + "X" + stratification_name + "_" + new_strata
+            for old_strata, new_strata in itertools.product(old_mixing_categories, strata_names)
+        ]
+        combined_mixing_matrix = numpy.kron(old_mixing_matrix, new_mixing_matrix)
+
+    return combined_mixing_matrix, mixing_categories
+
+    def prepare_target_props(
+        target_props: Dict[str, Dict[str, float]],
+        stratification_name: str,
+        strata_names: List[str],
+        unstratified_compartment_names: List[str],
+        implement_count: int,
+    ):
+        """
+        create the dictionary of dictionaries that contains the target values for equlibration
+
+        :parameters:
+            target_props: dict
+                user submitted dictionary with keys the restrictions by previously implemented strata that apply
+            stratification_name: str
+                name of stratification process currently being implemented
+            strata_names: list
+                list of the names of the strata being implemented under the current stratification process
+        """
+        new_flows = []
+        strat_target_props = {}
+        for restriction in target_props:
+            strat_target_props[restriction] = {}
+
+            # only need parameter values for the first n-1 strata, as the last one will be the remainder
+            for stratum in strata_names[:-1]:
+                strat_target_props[restriction][stratum] = target_props[restriction][stratum]
+
+            # add in sequential series of flows between neighbouring strata that transition people between the strata being
+            # implemented in this stratification stage
+            # restriction: name of previously implemented stratum that this equilibration flow applies to, if any, otherwise "all"
+            for compartment in unstratified_compartment_names:
+                if restriction in find_name_components(compartment) or restriction == "all":
+                    for n_stratum in range(len(strata_names[:-1])):
+                        new_flow = {
+                            "type": Flow.STRATA_CHANGE,
+                            "parameter": stratification_name
+                            + "X"
+                            + restriction
+                            + "X"
+                            + strata_names[n_stratum]
+                            + "_"
+                            + strata_names[n_stratum + 1],
+                            "origin": create_stratified_name(
+                                compartment, stratification_name, strata_names[n_stratum],
+                            ),
+                            "to": create_stratified_name(
+                                compartment, stratification_name, strata_names[n_stratum + 1],
+                            ),
+                            "implement": implement_count,
+                            "strain": float("nan"),
+                        }
+                        new_flows.append(new_flow)
+
+            return strat_target_props, new_flows

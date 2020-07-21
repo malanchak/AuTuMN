@@ -231,18 +231,30 @@ class StratifiedModel(EpiModel):
         removed ability to just pass an int as strata_names and get an array from 1-N magically
 
         ====== VALIDATION TODOS ======
-        TODO: validate that stratification name is a str
-        TODO: target_proportions must be a dict
-        TODO: all keys of target_proportions must be a type of strata requested as a part of this stratification
-        TODO: check that user isn't re-creating a stratification with the same name
-        TODO: strata_names cannot be a float, it can be an int(represents 1-N), it can be a list (which be co-erced to a string)
-        TODO: comparemntcompartment_types must be valid compartments
-        TODO: AGE SPECIFIC VALIDATION TODOS
-        TODO: ensure that IF age stratification is requested, THEN user cannot speccompartment_types"
+        - universal death rate param can only be stratified/adjusted when strat is applied to all compartment types
+        - validate that stratification name is a str
+        - target_proportions must be a dict
+        - all keys of target_proportions must be a type of strata requested as a part of this stratification
+        - check that user isn't re-creating a stratification with the same name
+        - strata_names cannot be a float, it can be an int(represents 1-N), it can be a list (which be co-erced to a string)
+        - comparemntcompartment_types must be valid compartments
+        - AGE SPECIFIC VALIDATION TODOS
+        - ensure that IF age stratification is requested, THEN user cannot speccompartment_types"
               ie. age stratification must apply to all compartments.
-        TODO: all age strata must be int or float
-        TODO: 0 must be in age strata request - represents those ages 0 to <next lowest age?
-        TODO: Validate that all adjustment request parameters and strata actually exist already
+        - all age strata must be int or float
+        - 0 must be in age strata request - represents those ages 0 to <next lowest age?
+        - Validate that all adjustment request parameters and strata actually exist already
+
+        - mixing matrix may be None
+        - matrix must be square, 2d, sized to number of strata being implemented and ndarray
+
+        - infectiousness_adjustments must be a dict
+        - all keys of infectiousness adjustments must be in strata being implemented
+
+        - stratum must be in target props
+        - target props value for stratum must be float, int or str
+        - it it's a str then there must be a time variant for it
+
         FIXME: No validation of entry proportions sanity
         OTHER NOTES
         self.full_stratification_list keeps track of comparements that are not partially stratified
@@ -316,8 +328,8 @@ class StratifiedModel(EpiModel):
             list(self.transition_flows.T.to_dict().values()),
             len(self.all_stratifications),
         )
-        self.overwrite_parameters += overwritten_parameter_adjustment_names
         self.parameters.update(param_updates)
+        self.overwrite_parameters += overwritten_parameter_adjustment_names
         self.adaptation_functions.update(adaptation_function_updates)
 
         # Update the customised flow functions.
@@ -357,262 +369,55 @@ class StratifiedModel(EpiModel):
             if new_death_flows:
                 self.death_flows = self.death_flows.append(new_death_flows, ignore_index=True)
 
-        self.stratify_universal_death_rate(
-            stratification_name,
-            strata_names,
-            adjustment_requests,
-            self.compartment_types_to_stratify,
-        )
+        if stratification_name in self.full_stratification_list:
+            (
+                available_death_rates,
+                adaptation_function_updates,
+                overwritten_parameter_adjustment_names,
+            ) = utils.stratify_universal_death_rate(
+                stratification_name,
+                strata_names,
+                adjustment_requests,
+                self.compartment_types_to_stratify,
+                self.time_variants,
+                self.parameters,
+            )
+            self.adaptation_functions.update(adaptation_function_updates)
+            self.available_death_rates += available_death_rates
+            self.overwrite_parameters += overwritten_parameter_adjustment_names
 
         # if stratifying by strain
         self.strains = strata_names if stratification_name == "strain" else self.strains
 
-        # check submitted mixing matrix and combine with existing matrix, if any
-        self.prepare_mixing_matrix(mixing_matrix, stratification_name, strata_names)
+        if mixing_matrix is not None:
+            # check submitted mixing matrix and combine with existing matrix, if any
+            combined_mixing_matrix, mixing_categories = utils.combine_mixing_matrix(
+                self.mixing_categories,
+                self.mixing_matrix,
+                mixing_matrix,
+                stratification_name,
+                strata_names,
+            )
+            self.mixing_categories = mixing_categories
+            self.mixing_matrix = combined_mixing_matrix
 
-        # prepare infectiousness levels attribute
-        self.prepare_infectiousness_levels(
-            stratification_name, strata_names, infectiousness_adjustments
-        )
+        # Prepare infectiousness levels attribute
+        for stratum, level in infectiousness_adjustments.items():
+            stratum_name = create_stratum_name(stratification_name, stratum, joining_string="")
+            self.infectiousness_levels[stratum_name] = level
 
         # prepare strata equilibration target proportions
         if target_props:
-            self.prepare_and_check_target_props(target_props, stratification_name, strata_names)
-
-    def stratify_universal_death_rate(
-        self,
-        _stratification_name,
-        _strata_names,
-        _adjustment_requests,
-        _compartment_types_to_stratify,
-    ):
-        """
-        stratify the approach to universal, population-wide deaths (which can be made to vary by stratum)
-        adjust every parameter that refers to the universal death rate, according to user request if submitted and
-            otherwise populated with a value of one by default
-
-        :param _stratification_name:
-            see prepare_and_check_stratification
-        :param _strata_names:
-            see find_strata_names_from_input
-        :param _adjustment_requests:
-            see incorporate_alternative_overwrite_approach and check_parameter_adjustment_requests
-        :param _compartment_types_to_stratify:
-            see above
-        """
-        if (
-            _stratification_name not in self.full_stratification_list
-            and "universal_death_rate" in _adjustment_requests
-        ):
-            raise ValueError(
-                "universal death rate can only be stratified when applied to all compartment types"
+            strat_target_props, new_flows = utils.prepare_target_props(
+                target_props,
+                stratification_name,
+                strata_names,
+                self.unstratified_compartment_names,
+                len(self.all_stratifications),
             )
-        elif _stratification_name not in self.full_stratification_list:
-            self.output_to_user(
-                "universal death rate not adjusted as stratification not applied to all compartments"
-            )
-            return
-
-        # ensure baseline function available for modification in universal death rates
-        self.adaptation_functions["universal_death_rateX"] = (
-            self.time_variants["universal_death_rate"]
-            if "universal_death_rate" in self.time_variants
-            else lambda time: self.parameters["universal_death_rate"]
-        )
-
-        # if stratification applied to all compartment types
-        for stratum in _strata_names:
-            if (
-                "universal_death_rate" in _adjustment_requests
-                and stratum in _adjustment_requests["universal_death_rate"]
-            ):
-                stratum_name = create_stratum_name(_stratification_name, stratum, joining_string="")
-                self.available_death_rates.append(stratum_name)
-
-                # use existing function or create new one from constant as needed
-                if type(_adjustment_requests["universal_death_rate"][stratum]) == str:
-                    self.adaptation_functions[
-                        "universal_death_rateX" + stratum_name
-                    ] = self.time_variants[_adjustment_requests["universal_death_rate"][stratum]]
-                elif isinstance(
-                    _adjustment_requests["universal_death_rate"][stratum], (int, float)
-                ):
-                    self.adaptation_functions[
-                        "universal_death_rateX" + stratum_name
-                    ] = create_multiplicative_function(
-                        self.time_variants[_adjustment_requests["universal_death_rate"][stratum]]
-                    )
-
-                # record the parameters that over-write the less stratified parameters closer to the trunk of the tree
-                if (
-                    OVERWRITE_KEY in _adjustment_requests["universal_death_rate"]
-                    and stratum in _adjustment_requests["universal_death_rate"][OVERWRITE_KEY]
-                ):
-                    self.overwrite_parameters.append(
-                        create_stratified_name(
-                            "universal_death_rate", _stratification_name, stratum
-                        )
-                    )
-
-    def prepare_mixing_matrix(self, _mixing_matrix, _stratification_name, _strata_names):
-        """
-        check that the mixing matrix has been correctly specified and call the other relevant functions
-
-        :param _mixing_matrix: numpy array
-            must be square
-            represents the mixing of the strata within this stratification
-        :param _stratification_name: str
-            the name of the stratification - i.e. the reason for implementing this type of stratification
-        :param _strata_names: list
-            see find_strata_names_from_input
-        """
-        if _mixing_matrix is None:
-            return
-        elif type(_mixing_matrix) != numpy.ndarray:
-            raise ValueError("submitted mixing matrix is wrong data type")
-        elif len(_mixing_matrix.shape) != 2:
-            raise ValueError("submitted mixing matrix is not two-dimensional")
-        elif _mixing_matrix.shape[0] != _mixing_matrix.shape[1]:
-            raise ValueError("submitted mixing is not square")
-        elif _mixing_matrix.shape[0] != len(_strata_names):
-            raise ValueError("mixing matrix does not sized to number of strata being implemented")
-        self.combine_new_mixing_matrix_with_existing(
-            _mixing_matrix, _stratification_name, _strata_names
-        )
-
-    def combine_new_mixing_matrix_with_existing(
-        self, _mixing_matrix, _stratification_name, _strata_names
-    ):
-        """
-        master mixing matrix function to take in a new mixing matrix and combine with the existing ones
-
-        :param _mixing_matrix: numpy array
-            array, which must be square representing the mixing of the strata within this stratification
-        :param _stratification_name: str
-            the name of the stratification - i.e. the reason for implementing this type of stratification
-        :param _strata_names: list
-            see find_strata_names_from_input
-        """
-
-        # if no mixing matrix yet, just convert the existing one to a dataframe
-        if self.mixing_matrix is None:
-            self.mixing_categories = [_stratification_name + "_" + i for i in _strata_names]
-            self.mixing_matrix = _mixing_matrix
-
-        # otherwise take the kronecker product to get the new mixing matrix
-        else:
-            self.mixing_categories = [
-                old_strata + "X" + _stratification_name + "_" + new_strata
-                for old_strata, new_strata in itertools.product(
-                    self.mixing_categories, _strata_names
-                )
-            ]
-            self.mixing_matrix = numpy.kron(self.mixing_matrix, _mixing_matrix)
-
-    def prepare_infectiousness_levels(
-        self, _stratification_name, _strata_names, _infectiousness_adjustments
-    ):
-        """
-        store infectiousness adjustments as dictionary attribute to the model object, with first tier of keys the
-            stratification and second tier the strata to be modified
-
-        :param _stratification_name:
-            see prepare_and_check_stratification
-        :param _strata_names:
-             see find_strata_names_from_input
-        :param _infectiousness_adjustments: dict
-            requested adjustments to infectiousness for this stratification
-        """
-        if type(_infectiousness_adjustments) != dict:
-            raise ValueError("infectiousness adjustments not submitted as dictionary")
-        elif not all(key in _strata_names for key in _infectiousness_adjustments.keys()):
-            raise ValueError("infectiousness adjustment key not in strata being implemented")
-        else:
-            for stratum in _infectiousness_adjustments:
-                self.infectiousness_levels[
-                    create_stratum_name(_stratification_name, stratum, joining_string="")
-                ] = _infectiousness_adjustments[stratum]
-
-    def prepare_and_check_target_props(self, _target_props, _stratification_name, _strata_names):
-        """
-        create the dictionary of dictionaries that contains the target values for equlibration
-
-        :parameters:
-            _target_props: dict
-                user submitted dictionary with keys the restrictions by previously implemented strata that apply
-            _stratification_name: str
-                name of stratification process currently being implemented
-            _strata_names: list
-                list of the names of the strata being implemented under the current stratification process
-        """
-        self.target_props[_stratification_name] = {}
-        for restriction in _target_props:
-            self.target_props[_stratification_name][restriction] = {}
-
-            # only need parameter values for the first n-1 strata, as the last one will be the remainder
-            for stratum in _strata_names[:-1]:
-                if stratum not in _target_props[restriction]:
-                    raise ValueError(
-                        "one or more of first n-1 strata being applied not in the target prop request"
-                    )
-                elif isinstance(_target_props[restriction][stratum], (float, int, str)):
-                    self.target_props[_stratification_name][restriction][stratum] = _target_props[
-                        restriction
-                    ][stratum]
-                else:
-                    raise ValueError("target proportions specified with incorrect format for value")
-                if (
-                    type(_target_props[restriction][stratum]) == str
-                    and _target_props[restriction][stratum] not in self.time_variants
-                ):
-                    raise ValueError("function for prevalence of %s not found" % stratum)
-            if _strata_names[-1] in self.target_props:
-                self.output_to_user(
-                    "target proportion requested for stratum %s, but as last stratum"
-                    % _strata_names[-1]
-                    + " in request, this will be ignored and assigned the remainder to ensure sum to one"
-                )
-
-            # add the necessary flows to the transition data frame
-            self.link_strata_with_flows(_stratification_name, _strata_names, restriction)
-
-    def link_strata_with_flows(self, _stratification_name, _strata_names, _restriction):
-        """
-        add in sequential series of flows between neighbouring strata that transition people between the strata being
-            implemented in this stratification stage
-
-        :parameters:
-            _stratification_name: str
-                name of stratification currently being implemented
-            _strata_names: list
-                list of the strata being implemented in this stratification process
-            _restriction: str
-                name of previously implemented stratum that this equilibration flow applies to, if any, otherwise "all"
-        """
-        for compartment in self.unstratified_compartment_names:
-            if _restriction in find_name_components(compartment) or _restriction == "all":
-                for n_stratum in range(len(_strata_names[:-1])):
-                    self.transition_flows = self.transition_flows.append(
-                        {
-                            "type": Flow.STRATA_CHANGE,
-                            "parameter": _stratification_name
-                            + "X"
-                            + _restriction
-                            + "X"
-                            + _strata_names[n_stratum]
-                            + "_"
-                            + _strata_names[n_stratum + 1],
-                            "origin": create_stratified_name(
-                                compartment, _stratification_name, _strata_names[n_stratum],
-                            ),
-                            "to": create_stratified_name(
-                                compartment, _stratification_name, _strata_names[n_stratum + 1],
-                            ),
-                            "implement": len(self.all_stratifications),
-                            "strain": float("nan"),
-                        },
-                        ignore_index=True,
-                    )
+            self.target_props[stratification_name] = strat_target_props
+            if new_flows:
+                self.transition_flows = self.transition_flows.append(new_flows, ignore_index=True)
 
     """
     pre-integration methods
