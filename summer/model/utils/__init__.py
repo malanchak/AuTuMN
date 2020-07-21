@@ -171,60 +171,20 @@ def stratify_transition_flows(
     adaptation_function_updates = {}
     for n_flow in flow_idxs:
         flow = transition_flows[n_flow]
-
         stratify_from = find_stem(flow["origin"]) in compartments_to_stratify
         stratify_to = find_stem(flow["to"]) in compartments_to_stratify
         if stratify_from or stratify_to:
-            # Find the adjustment requests that are extensions of the base parameter type being considered
-            # expected behaviour is as follows:
-            # - if there are no submitted requests (keys to the adjustment requests) that are extensions of the unadjusted
-            #     parameter, will return None
-            # - if there is one submitted request that is an extension of the unadjusted parameter, will return that parameter
-            # - if there are multiple submitted requests that are extensions to the unadjusted parameter and one is more
-            #     stratified than any of the others (i.e. more instances of the "X" string), will return this most stratified
-            #     parameter
-            # - if there are multiple submitted requests that are extensions to the unadjusted parameter and several of them
-            #     are equal in having the greatest extent of stratification, will return the longest string
-
             # find all the requests that start with the parameter of interest and their level of stratification
             param_name = flow["parameter"]
-            adjustment_request_param = None
-            applicable_params = [p for p in adjustment_requests.keys() if param_name.startswith(p)]
-            applicable_param_n_stratifications = [
-                len(find_name_components(p)) for p in applicable_params
-            ]
-            if applicable_param_n_stratifications:
-                max_thing = max(applicable_param_n_stratifications)
-                max_length_idxs = [
-                    idx
-                    for idx, p in enumerate(applicable_param_n_stratifications)
-                    if p == max_thing
-                ]
-                candidate_params = [applicable_params[i] for i in max_length_idxs]
-                adjustment_request_param = max(candidate_params, key=len)
-
-            param_adjust_requests = adjustment_requests.get(adjustment_request_param)
             for stratum in strata_names:
-                # Find the adjustment request that is relevant to a particular unadjusted parameter
-                adjusted_param_name = None
-                if param_adjust_requests:
-                    if stratum in param_adjust_requests:
-                        adjusted_param_name = create_stratified_name(
-                            param_name, stratification_name, stratum
-                        )
-                    else:
-                        adjusted_param_name = param_name
-
-                    if stratum in param_adjust_requests:
-                        param_updates[adjusted_param_name] = param_adjust_requests[stratum]
-
-                    # Record the parameters that over-write the less stratified parameters closer to the trunk of the tree
-                    is_overwrite = (
-                        OVERWRITE_KEY in param_adjust_requests
-                        and stratum in param_adjust_requests[OVERWRITE_KEY]
-                    )
-                    if is_overwrite:
-                        overwritten_parameter_adjustment_names.append(adjusted_param_name)
+                adjusted_param_name = get_adjusted_parameter(
+                    flow["parameter"],
+                    stratification_name,
+                    stratum,
+                    adjustment_requests,
+                    param_updates,
+                    overwritten_parameter_adjustment_names,
+                )
 
                 # Find the flow's parameter name
                 if not adjusted_param_name:
@@ -330,43 +290,101 @@ def stratify_death_flows(
     stratification_name: str,
     strata_names: List[str],
     adjustment_requests: Dict[str, Dict[str, float]],
-    compartments_to_stratify: List[str],
+    compartment_types_to_stratify: List[str],
     death_flows: List[dict],
     implement_count: int,
 ):
     """
     Add compartment-specific death flows
     """
+    new_flows = []
+    overwritten_parameter_adjustment_names = []
+    param_updates = {}
     for flow in death_flows:
         is_prev_implement = flow["implement"] == implement_count - 1
         if not is_prev_implement:
             continue
 
-        if find_stem(flow["origin"]) in self.compartment_types_to_stratify:
+        if find_stem(flow["origin"]) in compartment_types_to_stratify:
             # if the compartment with an additional death flow is being stratified
-            for stratum in _strata_names:
+            for stratum in strata_names:
 
                 # get stratified parameter name if requested to stratify, otherwise use the unstratified one
-                parameter_name = self.add_adjusted_parameter(
-                    flow["parameter"], _stratification_name, stratum, _adjustment_requests,
+                parameter_name = get_adjusted_parameter(
+                    flow["parameter"],
+                    stratification_name,
+                    stratum,
+                    adjustment_requests,
+                    param_updates,
+                    overwritten_parameter_adjustment_names,
                 )
+
                 if not parameter_name:
                     parameter_name = flow["parameter"]
 
-                # add the stratified flow to the death flows data frame
-                self.death_flows = self.death_flows.append(
-                    {
-                        "type": flow["type"],
-                        "parameter": parameter_name,
-                        "origin": create_stratified_name(
-                            flow["origin"], _stratification_name, stratum
-                        ),
-                        "implement": len(self.all_stratifications),
-                    },
-                    ignore_index=True,
-                )
+                new_flow = {
+                    "type": flow["type"],
+                    "parameter": parameter_name,
+                    "origin": create_stratified_name(flow["origin"], stratification_name, stratum),
+                    "implement": implement_count,
+                }
+                new_flows.append(new_flow)
         else:
             # otherwise if not part of the stratification, accept the existing flow and increment the implement value
-            new_flow = self.death_flows.loc[n_flow, :].to_dict()
-            new_flow["implement"] += 1
-            self.death_flows = self.death_flows.append(new_flow, ignore_index=True)
+            new_flow = {**flow, "implement": flow["implement"] + 1}
+            new_flows.append(new_flow)
+
+    return new_flows, param_updates, overwritten_parameter_adjustment_names
+
+
+def get_adjusted_parameter(
+    param_name: str,
+    stratification_name: str,
+    stratum: str,
+    adjustment_requests: Dict[str, Dict[str, float]],
+    param_updates: dict,
+    overwritten_parameter_adjustment_names: list,
+):
+    """
+    Find the adjustment requests that are extensions of the base parameter type being considered
+    expected behaviour is as follows:
+    - if there are no submitted requests (keys to the adjustment requests) that are extensions of the unadjusted
+        parameter, will return None
+    - if there is one submitted request that is an extension of the unadjusted parameter, will return that parameter
+    - if there are multiple submitted requests that are extensions to the unadjusted parameter and one is more
+        stratified than any of the others (i.e. more instances of the "X" string), will return this most stratified
+        parameter
+    - if there are multiple submitted requests that are extensions to the unadjusted parameter and several of them
+        are equal in having the greatest extent of stratification, will return the longest string
+    """
+    adjustment_request_param = None
+    applicable_params = [p for p in adjustment_requests.keys() if param_name.startswith(p)]
+    applicable_param_n_stratifications = [len(find_name_components(p)) for p in applicable_params]
+    if applicable_param_n_stratifications:
+        max_thing = max(applicable_param_n_stratifications)
+        max_length_idxs = [
+            idx for idx, p in enumerate(applicable_param_n_stratifications) if p == max_thing
+        ]
+        candidate_params = [applicable_params[i] for i in max_length_idxs]
+        adjustment_request_param = max(candidate_params, key=len)
+
+    param_adjust_requests = adjustment_requests.get(adjustment_request_param)
+    adjusted_param_name = None
+    if param_adjust_requests:
+        if stratum in param_adjust_requests:
+            adjusted_param_name = create_stratified_name(param_name, stratification_name, stratum)
+        else:
+            adjusted_param_name = param_name
+
+        if stratum in param_adjust_requests:
+            param_updates[adjusted_param_name] = param_adjust_requests[stratum]
+
+        # Record the parameters that over-write the less stratified parameters closer to the trunk of the tree
+        is_overwrite = (
+            OVERWRITE_KEY in param_adjust_requests
+            and stratum in param_adjust_requests[OVERWRITE_KEY]
+        )
+        if is_overwrite:
+            overwritten_parameter_adjustment_names.append(adjusted_param_name)
+
+    return adjusted_param_name

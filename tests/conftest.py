@@ -91,6 +91,18 @@ def verify(*args, **kwargs):
 
             if type(obj) is np.ndarray:
                 assert_array_equal(obj, target, f"Approval fixture array mismatch for {key}")
+            # elif (
+            #     type(obj) is list
+            #     and len(obj) > 0
+            #     and type(obj[0]) is dict
+            #     and "implement" in obj[0]
+            # ):
+            #     # Hack to compare flow data
+            #     t = lambda l: set(
+            #         ["---".join([f"{k}::{d[k]}" for k in sorted(d.keys())]) for d in l]
+            #     )
+            #     assert t(obj) == t(target), f"Approval fixture mismatch for {key}"
+
             else:
                 assert obj == target, f"Approval fixture mismatch for {key}"
 

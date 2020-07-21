@@ -338,13 +338,30 @@ class StratifiedModel(EpiModel):
             self.parameters.update(param_updates)
             self.time_variants.update(time_variant_updates)
 
-        # =========== UP TO HERE
-
         if self.death_flows.shape[0] > 0:
-            self.stratify_death_flows(stratification_name, strata_names, adjustment_requests)
+            (
+                new_death_flows,
+                param_updates,
+                overwritten_parameter_adjustment_names,
+            ) = utils.stratify_death_flows(
+                stratification_name,
+                strata_names,
+                adjustment_requests,
+                self.compartment_types_to_stratify,
+                list(self.death_flows.T.to_dict().values()),
+                len(self.all_stratifications),
+            )
+
+            self.overwrite_parameters += overwritten_parameter_adjustment_names
+            self.parameters.update(param_updates)
+            if new_death_flows:
+                self.death_flows = self.death_flows.append(new_death_flows, ignore_index=True)
 
         self.stratify_universal_death_rate(
-            stratification_name, strata_names, adjustment_requests, compartment_types_to_stratify,
+            stratification_name,
+            strata_names,
+            adjustment_requests,
+            self.compartment_types_to_stratify,
         )
 
         # if stratifying by strain
@@ -361,185 +378,6 @@ class StratifiedModel(EpiModel):
         # prepare strata equilibration target proportions
         if target_props:
             self.prepare_and_check_target_props(target_props, stratification_name, strata_names)
-
-    def add_adjusted_parameter(
-        self, _unadjusted_parameter, _stratification_name, _stratum, _adjustment_requests,
-    ):
-        """
-        find the adjustment request that is relevant to a particular unadjusted parameter and stratum and add the
-            parameter value (str for function or float) to the parameters dictionary attribute
-        otherwise allow return of None
-
-        :param _unadjusted_parameter:
-            name of the unadjusted parameter value
-        :param _stratification_name:
-            see prepare_and_check_stratification
-        :param _stratum:
-            stratum being considered by the method calling this method
-        :param _adjustment_requests:
-            see incorporate_alternative_overwrite_approach and check_parameter_adjustment_requests
-        :return: parameter_adjustment_name: str or None
-            if returned as None, assumption will be that the original, unstratified parameter should be used
-            otherwise create a new parameter name and value and store away in the appropriate model structure
-        """
-        parameter_adjustment_name = None
-        relevant_adjustment_request = self.find_relevant_adjustment_request(
-            _adjustment_requests, _unadjusted_parameter
-        )
-        if relevant_adjustment_request is not None:
-            parameter_adjustment_name = (
-                create_stratified_name(_unadjusted_parameter, _stratification_name, _stratum)
-                if _stratum in _adjustment_requests[relevant_adjustment_request]
-                else _unadjusted_parameter
-            )
-            self.output_to_user(
-                "\t parameter for %s stratum of %s stratification is called %s"
-                % (_stratum, _stratification_name, parameter_adjustment_name)
-            )
-            if _stratum in _adjustment_requests[relevant_adjustment_request]:
-                self.parameters[parameter_adjustment_name] = _adjustment_requests[
-                    relevant_adjustment_request
-                ][_stratum]
-
-            # record the parameters that over-write the less stratified parameters closer to the trunk of the tree
-            if (
-                OVERWRITE_KEY in _adjustment_requests[relevant_adjustment_request]
-                and _stratum in _adjustment_requests[relevant_adjustment_request][OVERWRITE_KEY]
-            ):
-                self.overwrite_parameters.append(parameter_adjustment_name)
-        return parameter_adjustment_name
-
-    def find_relevant_adjustment_request(self, _adjustment_requests, _unadjusted_parameter):
-        """
-        find the adjustment requests that are extensions of the base parameter type being considered
-        expected behaviour is as follows:
-        * if there are no submitted requests (keys to the adjustment requests) that are extensions of the unadjusted
-            parameter, will return None
-        * if there is one submitted request that is an extension of the unadjusted parameter, will return that parameter
-        * if there are multiple submitted requests that are extensions to the unadjusted parameter and one is more
-            stratified than any of the others (i.e. more instances of the "X" string), will return this most stratified
-            parameter
-        * if there are multiple submitted requests that are extensions to the unadjusted parameter and several of them
-            are equal in having the greatest extent of stratification, will return the longest string
-
-        :param _unadjusted_parameter:
-            see add_adjusted_parameter
-        :param _adjustment_requests:
-            see prepare_and_check_stratification
-        :return: str or None
-            the key of the adjustment request that is applicable to the parameter of interest if any, otherwise None
-        """
-
-        # find all the requests that start with the parameter of interest and their level of stratification
-        applicable_params = [
-            param for param in _adjustment_requests if _unadjusted_parameter.startswith(param)
-        ]
-        applicable_param_n_stratifications = [
-            len(find_name_components(param)) for param in applicable_params
-        ]
-        if applicable_param_n_stratifications:
-            max_length_indices = [
-                i_p
-                for i_p, p in enumerate(applicable_param_n_stratifications)
-                if p == max(applicable_param_n_stratifications)
-            ]
-            candidate_params = [applicable_params[i] for i in max_length_indices]
-            return max(candidate_params, key=len)
-        else:
-            return None
-
-    def sort_absent_transition_parameter(
-        self,
-        _stratification_name,
-        _strata_names,
-        _stratum,
-        _stratify_from,
-        _stratify_to,
-        unstratified_name,
-    ):
-        """
-        work out what to do if a specific transition parameter adjustment has not been requested
-
-        :param _stratification_name:
-            see prepare_and_check_stratification
-        :param _strata_names:
-            see find_strata_names_from_input
-        :param _stratum:
-        :param _stratify_from:
-            see add_stratified_flows
-        :param _stratify_to:
-            see add_stratified_flows
-        :param unstratified_name: str
-            the name of the parameter before the stratification is implemented
-        :return: str
-            parameter name for revised parameter than wasn't provided
-        """
-
-        # default behaviour if not specified is to split the parameter into equal parts if to compartment is split
-        if not _stratify_from and _stratify_to:
-            self.output_to_user(
-                "\t splitting existing parameter value %s into %s equal parts"
-                % (unstratified_name, len(_strata_names))
-            )
-            parameter_name = create_stratified_name(
-                unstratified_name, _stratification_name, _stratum
-            )
-            self.parameters[parameter_name] = 1.0 / len(_strata_names)
-            self.adaptation_functions[parameter_name] = create_multiplicative_function(
-                1.0 / len(_strata_names)
-            )
-            return parameter_name
-
-        # otherwise if no request, retain the existing parameter
-        else:
-            self.output_to_user("\tretaining existing parameter value %s" % unstratified_name)
-            return unstratified_name
-
-    def stratify_death_flows(self, _stratification_name, _strata_names, _adjustment_requests):
-        """
-        add compartment-specific death flows to death_flows data frame attribute
-
-        :param _stratification_name:
-            see prepare_and_check_stratification
-        :param _strata_names:
-             see find_strata_names_from_input
-        :param _adjustment_requests:
-            see incorporate_alternative_overwrite_approach and check_parameter_adjustment_requests
-        """
-        for n_flow in self.find_death_indices_to_implement(back_one=1):
-
-            # if the compartment with an additional death flow is being stratified
-            if find_stem(self.death_flows.origin[n_flow]) in self.compartment_types_to_stratify:
-                for stratum in _strata_names:
-
-                    # get stratified parameter name if requested to stratify, otherwise use the unstratified one
-                    parameter_name = self.add_adjusted_parameter(
-                        self.death_flows.parameter[n_flow],
-                        _stratification_name,
-                        stratum,
-                        _adjustment_requests,
-                    )
-                    if not parameter_name:
-                        parameter_name = self.death_flows.parameter[n_flow]
-
-                    # add the stratified flow to the death flows data frame
-                    self.death_flows = self.death_flows.append(
-                        {
-                            "type": self.death_flows.type[n_flow],
-                            "parameter": parameter_name,
-                            "origin": create_stratified_name(
-                                self.death_flows.origin[n_flow], _stratification_name, stratum,
-                            ),
-                            "implement": len(self.all_stratifications),
-                        },
-                        ignore_index=True,
-                    )
-
-            # otherwise if not part of the stratification, accept the existing flow and increment the implement value
-            else:
-                new_flow = self.death_flows.loc[n_flow, :].to_dict()
-                new_flow["implement"] += 1
-                self.death_flows = self.death_flows.append(new_flow, ignore_index=True)
 
     def stratify_universal_death_rate(
         self,
