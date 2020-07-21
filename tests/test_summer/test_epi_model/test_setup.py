@@ -137,30 +137,46 @@ def test_model_flow_setup(ModelClass):
         starting_population=100,
     )
     # Check that death flows were set up properly
-    expected_columns = ["type", "parameter", "origin", "implement"]
-    expected_data = [
-        ["compartment_death", "infect_death", "infectious", 0],
-        ["compartment_death", "slip_on_banana_peel_rate", "susceptible", 0],
+    assert model.death_flows == [
+        {
+            "type": "compartment_death",
+            "parameter": "infect_death",
+            "origin": "infectious",
+            "implement": 0,
+        },
+        {
+            "type": "compartment_death",
+            "parameter": "slip_on_banana_peel_rate",
+            "origin": "susceptible",
+            "implement": 0,
+        },
     ]
-    expected_df = pd.DataFrame(expected_data, columns=expected_columns).astype(object)
-    assert_frame_equal(expected_df, model.death_flows)
+
     # Check that transition flows were set up properly
-    expected_columns = [
-        "type",
-        "parameter",
-        "origin",
-        "to",
-        "implement",
-        "strain",
-        "force_index",
+    assert model.transition_flows == [
+        {
+            "type": "standard_flows",
+            "parameter": "recovery",
+            "origin": "infectious",
+            "to": "susceptible",
+            "implement": 0,
+        },
+        {
+            "type": "customised_flows",
+            "parameter": "divine_blessing",
+            "origin": "infectious",
+            "to": "susceptible",
+            "implement": 0,
+        },
+        {
+            "type": "customised_flows",
+            "parameter": "cursed",
+            "origin": "susceptible",
+            "to": "infectious",
+            "implement": 0,
+        },
     ]
-    expected_data = [
-        ["standard_flows", "recovery", "infectious", "susceptible", 0, None, None],
-        ["customised_flows", "divine_blessing", "infectious", "susceptible", 0, None, None,],
-        ["customised_flows", "cursed", "susceptible", "infectious", 0, None, None],
-    ]
-    expected_df = pd.DataFrame(expected_data, columns=expected_columns).astype(object)
-    assert_frame_equal(expected_df, model.transition_flows)
+
     # Ensure custom functions were stored.
     assert model.customised_flow_functions[1] == mock_func_1
     assert model.customised_flow_functions[2] == mock_func_2

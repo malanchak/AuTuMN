@@ -80,7 +80,6 @@ def test_stratify_transition_flows__with_adjustments():
             "origin": "susceptible",
             "to": "infectious",
             "implement": 0,
-            "strain": None,
         },
         {
             "type": "standard_flows",
@@ -88,7 +87,6 @@ def test_stratify_transition_flows__with_adjustments():
             "origin": "infectious",
             "to": "susceptible",
             "implement": 0,
-            "strain": None,
         },
     ]
     params = {
@@ -120,7 +118,6 @@ def test_stratify_transition_flows__with_adjustments():
             "origin": "susceptibleXtest_foo",
             "to": "infectiousXtest_foo",
             "implement": 1,
-            "strain": None,
         },
         {
             "type": "standard_flows",
@@ -128,7 +125,6 @@ def test_stratify_transition_flows__with_adjustments():
             "origin": "susceptibleXtest_bar",
             "to": "infectiousXtest_bar",
             "implement": 1,
-            "strain": None,
         },
         {
             "type": "standard_flows",
@@ -136,7 +132,6 @@ def test_stratify_transition_flows__with_adjustments():
             "origin": "infectiousXtest_foo",
             "to": "susceptibleXtest_foo",
             "implement": 1,
-            "strain": None,
         },
         {
             "type": "standard_flows",
@@ -144,7 +139,6 @@ def test_stratify_transition_flows__with_adjustments():
             "origin": "infectiousXtest_bar",
             "to": "susceptibleXtest_bar",
             "implement": 1,
-            "strain": None,
         },
     ]
 
@@ -161,7 +155,6 @@ def test_stratify_transition_flows__with_adjustments_and_partial_strat():
             "origin": "susceptible",
             "to": "infectious",
             "implement": 0,
-            "strain": None,
         },
         {
             "type": "standard_flows",
@@ -169,7 +162,6 @@ def test_stratify_transition_flows__with_adjustments_and_partial_strat():
             "origin": "infectious",
             "to": "susceptible",
             "implement": 0,
-            "strain": None,
         },
     ]
     params = {
@@ -207,7 +199,6 @@ def test_stratify_transition_flows__with_adjustments_and_partial_strat():
             "origin": "susceptibleXtest_foo",
             "to": "infectious",
             "implement": 1,
-            "strain": None,
         },
         {
             "type": "standard_flows",
@@ -215,7 +206,6 @@ def test_stratify_transition_flows__with_adjustments_and_partial_strat():
             "origin": "susceptibleXtest_bar",
             "to": "infectious",
             "implement": 1,
-            "strain": None,
         },
         {
             "type": "standard_flows",
@@ -223,7 +213,6 @@ def test_stratify_transition_flows__with_adjustments_and_partial_strat():
             "origin": "infectious",
             "to": "susceptibleXtest_foo",
             "implement": 1,
-            "strain": None,
         },
         {
             "type": "standard_flows",
@@ -231,7 +220,6 @@ def test_stratify_transition_flows__with_adjustments_and_partial_strat():
             "origin": "infectious",
             "to": "susceptibleXtest_bar",
             "implement": 1,
-            "strain": None,
         },
     ]
 
@@ -247,7 +235,6 @@ def test_stratify_transition_flows__with_custom_flow_funcs():
             "origin": "susceptible",
             "to": "infectious",
             "implement": 0,
-            "strain": None,
         },
         {
             "type": "customised_flows",
@@ -255,7 +242,6 @@ def test_stratify_transition_flows__with_custom_flow_funcs():
             "origin": "infectious",
             "to": "susceptible",
             "implement": 0,
-            "strain": None,
         },
         {
             "type": "customised_flows",
@@ -263,7 +249,6 @@ def test_stratify_transition_flows__with_custom_flow_funcs():
             "origin": "comp_0",
             "to": "comp_1",
             "implement": 0,
-            "strain": None,
         },
     ]
     params = {"flow_0": 0.5, "flow_1": 0.1, "flow_2": 1.9}
@@ -300,7 +285,6 @@ def test_stratify_transition_flows__with_custom_flow_funcs():
             "origin": "susceptibleXtest_foo",
             "to": "infectious",
             "implement": 1,
-            "strain": None,
         },
         {
             "type": "customised_flows",
@@ -308,7 +292,6 @@ def test_stratify_transition_flows__with_custom_flow_funcs():
             "origin": "susceptibleXtest_bar",
             "to": "infectious",
             "implement": 1,
-            "strain": None,
         },
         {
             "type": "customised_flows",
@@ -316,7 +299,6 @@ def test_stratify_transition_flows__with_custom_flow_funcs():
             "origin": "infectious",
             "to": "susceptibleXtest_foo",
             "implement": 1,
-            "strain": None,
         },
         {
             "type": "customised_flows",
@@ -324,7 +306,6 @@ def test_stratify_transition_flows__with_custom_flow_funcs():
             "origin": "infectious",
             "to": "susceptibleXtest_bar",
             "implement": 1,
-            "strain": None,
         },
         {
             "type": "customised_flows",
@@ -332,7 +313,6 @@ def test_stratify_transition_flows__with_custom_flow_funcs():
             "origin": "comp_0",
             "to": "comp_1",
             "implement": 1,
-            "strain": None,
         },
     ]
 

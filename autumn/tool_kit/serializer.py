@@ -5,17 +5,6 @@ def serialize_model(model: StratifiedModel) -> dict:
     """
     Model serializer - transform all relevant model info into basic Python data structures
     """
-    t_flows_df = model.transition_flows
-    flow_implement = t_flows_df.implement.max()
-    mask = t_flows_df["implement"] == flow_implement
-    t_flows_imp_df = t_flows_df[mask]
-    t_flows = list(t_flows_imp_df.T.to_dict().values())
-
-    d_flows_df = model.death_flows
-    flow_implement = d_flows_df.implement.max()
-    mask = d_flows_df["implement"] == flow_implement
-    d_flows_imp_df = d_flows_df[mask]
-    d_flows = list(d_flows_imp_df.T.to_dict().values())
     return {
         "settings": {
             "entry_compartment": model.entry_compartment,
@@ -33,7 +22,11 @@ def serialize_model(model: StratifiedModel) -> dict:
         },
         "stratifications": model.all_stratifications,
         "parameters": serialize_params(model.parameters),
-        "flows": {"transition": t_flows, "death": d_flows, "requested": model.requested_flows,},
+        "flows": {
+            "transition": model.transition_flows,
+            "death": model.death_flows,
+            "requested": model.requested_flows,
+        },
         "adaptation_functions": list(model.adaptation_functions.keys()),
         "mixing": {
             "mixing_matrix": None if model.mixing_matrix is None else model.mixing_matrix.tolist(),

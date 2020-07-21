@@ -142,10 +142,8 @@ class EpiModel:
         Create a basic compartmental model.
         Thise model is unstratified, but has characteristics required to support stratification.
         """
-        self.transition_flows = pd.DataFrame(
-            columns=("type", "parameter", "origin", "to", "implement", "strain", "force_index",)
-        )
-        self.death_flows = pd.DataFrame(columns=("type", "parameter", "origin", "implement"))
+        self.transition_flows = []
+        self.death_flows = []
         self.all_stratifications = {}
         self.customised_flow_functions = {}
         self.time_variants = {}
@@ -211,9 +209,9 @@ class EpiModel:
         """
         flow["implement"] = flow.get("implement", len(self.all_stratifications))
         flow_data = {key: value for key, value in flow.items() if key != "function"}
-        self.transition_flows = self.transition_flows.append(flow_data, ignore_index=True)
+        self.transition_flows.append(flow_data)
         if flow["type"] == Flow.CUSTOM:
-            idx = self.transition_flows.shape[0] - 1
+            idx = len(self.transition_flows) - 1
             self.customised_flow_functions[idx] = flow["function"]
 
     def add_death_flow(self, flow):
@@ -221,7 +219,7 @@ class EpiModel:
         Add a death flow to the model's flows.
         """
         flow["implement"] = flow.get("implement", len(self.all_stratifications))
-        self.death_flows = self.death_flows.append(flow, ignore_index=True)
+        self.death_flows.append(flow)
 
     def setup_default_parameters(self):
         """
@@ -262,12 +260,6 @@ class EpiModel:
         This method does not create any new data or change any existing data structures,
         it just copies it into a new data structure that is faster to search.
         """
-        # Copy transition flows into dictionary data structure.
-        self.transition_flows_dict = self.transition_flows.to_dict()
-
-        # Same with death flows
-        self.death_flows_dict = self.death_flows.to_dict()
-
         # Create mapping from compartment name to index.
         self.compartment_idx_lookup = {name: idx for idx, name in enumerate(self.compartment_names)}
 
@@ -390,8 +382,8 @@ class EpiModel:
             net_flow = self.find_net_transition_flow(n_flow, time, compartment_values)
 
             # Update equations with transition flows between compartments
-            origin_name = self.transition_flows_dict["origin"][n_flow]
-            target_name = self.transition_flows_dict["to"][n_flow]
+            origin_name = self.transition_flows[n_flow]["origin"]
+            target_name = self.transition_flows[n_flow]["to"]
             origin_idx = self.compartment_idx_lookup[origin_name]
             target_idx = self.compartment_idx_lookup[target_name]
             flow_rates[origin_idx] -= net_flow
@@ -415,7 +407,7 @@ class EpiModel:
         """
 
         # find adjusted parameter value
-        parameter = self.transition_flows_dict["parameter"][n_flow]
+        parameter = self.transition_flows[n_flow]["parameter"]
         parameter_value = self.get_parameter_value(parameter, time)
 
         # the flow is null if the parameter is null
@@ -426,11 +418,11 @@ class EpiModel:
         infectious_population_factor = self.find_infectious_multiplier(n_flow)
 
         # find the index of the origin or from compartment
-        origin_name = self.transition_flows_dict["origin"][n_flow]
+        origin_name = self.transition_flows[n_flow]["origin"]
         origin_idx = self.compartment_idx_lookup[origin_name]
 
         # implement flows according to whether customised or standard/infection-related
-        flow_type = self.transition_flows_dict["type"][n_flow]
+        flow_type = self.transition_flows[n_flow]["type"]
         if flow_type == Flow.CUSTOM:
             custom_flow_func = self.customised_flow_functions[n_flow]
             return parameter_value * custom_flow_func(self, n_flow, time, compartment_values)
@@ -445,7 +437,7 @@ class EpiModel:
         """
         for n_flow in self.death_indices_to_implement:
             net_flow = self.find_net_infection_death_flow(n_flow, time, compartment_values)
-            origin_name = self.death_flows_dict["origin"][n_flow]
+            origin_name = self.death_flows[n_flow]["origin"]
             origin_idx = self.compartment_idx_lookup[origin_name]
             flow_rates[origin_idx] -= net_flow
             if "total_deaths" in self.tracked_quantities:
@@ -453,21 +445,21 @@ class EpiModel:
 
         return flow_rates
 
-    def find_net_infection_death_flow(self, _n_flow, time, compartment_values):
+    def find_net_infection_death_flow(self, n_flow, time, compartment_values):
         """
         find the net infection death flow rate for a particular compartment
 
-        :param _n_flow: int
+        :param n_flow: int
             row of interest in death flow dataframe
         :param time: float
             time at which the death rate is being evaluated
         :param compartment_values: list
             list of current compartment sizes
         """
-        origin_name = self.death_flows_dict["origin"][_n_flow]
+        origin_name = self.death_flows[n_flow]["origin"]
         origin_idx = self.compartment_idx_lookup[origin_name]
 
-        parameter = self.death_flows_dict["parameter"][_n_flow]
+        parameter = self.death_flows[n_flow]["parameter"]
         parameter_value = self.get_parameter_value(parameter, time)
         return parameter_value * compartment_values[origin_idx]
 
@@ -543,7 +535,7 @@ class EpiModel:
             the total infectious quantity, whether that be the number or proportion of infectious persons
             needs to return as one for flows that are not transmission dynamic infectiousness flows
         """
-        flow_type = self.transition_flows_dict["type"][n_flow]
+        flow_type = self.transition_flows[n_flow]["type"]
         if flow_type == Flow.INFECTION_DENSITY:
             return self.infectious_populations
         elif flow_type == Flow.INFECTION_FREQUENCY:
@@ -674,9 +666,9 @@ class EpiModel:
         flow_idxs = []
         for flow_idx in range(num_flows):
             output_conn = self.output_connections[output]
-            implement = self.transition_flows_dict["implement"][flow_idx]
-            origin = self.transition_flows_dict["origin"][flow_idx]
-            target = self.transition_flows_dict["to"][flow_idx]
+            implement = self.transition_flows[flow_idx]["implement"]
+            origin = self.transition_flows[flow_idx]["origin"]
+            target = self.transition_flows[flow_idx]["to"]
             check_origin_stem = find_stem(origin) == output_conn["origin"]
             check_target_stem = find_stem(target) == output_conn["to"]
             check_implement = implement == len(self.all_stratifications)
@@ -716,10 +708,10 @@ class EpiModel:
         return [
             row
             for row in range(len(self.death_flows))
-            if self.death_flows.implement[row] == len(self.all_stratifications)
+            if self.death_flows[row]["implement"] == len(self.all_stratifications)
             and all(
                 [
-                    restriction in find_name_components(self.death_flows.origin[row])
+                    restriction in find_name_components(self.death_flows[row]["origin"])
                     for restriction in _death_output
                 ]
             )

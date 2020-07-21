@@ -295,7 +295,7 @@ class StratifiedModel(EpiModel):
             ageing_params, ageing_flows = utils.create_ageing_flows(
                 strata_names, unstratified_compartment_names, len(self.all_stratifications)
             )
-            self.transition_flows = self.transition_flows.append(ageing_flows, ignore_index=True)
+            self.transition_flows += ageing_flows
             self.parameters.update(ageing_params)
 
         # Stratify the transition flows
@@ -309,7 +309,7 @@ class StratifiedModel(EpiModel):
             strata_names,
             adjustment_requests,
             compartment_types_to_stratify,
-            list(self.transition_flows.T.to_dict().values()),
+            self.transition_flows,
             len(self.all_stratifications),
         )
         self.parameters.update(param_updates)
@@ -323,8 +323,7 @@ class StratifiedModel(EpiModel):
                 new_idx = num_flows + idx
                 self.customised_flow_functions[new_idx] = self.customised_flow_functions[n_flow]
 
-        if new_flows:
-            self.transition_flows = self.transition_flows.append(new_flows, ignore_index=True)
+        self.transition_flows += new_flows
 
         # Stratify the entry flows
         if self.entry_compartment in compartment_types_to_stratify:
@@ -334,7 +333,7 @@ class StratifiedModel(EpiModel):
             self.parameters.update(param_updates)
             self.time_variants.update(time_variant_updates)
 
-        if self.death_flows.shape[0] > 0:
+        if self.death_flows:
             (
                 new_death_flows,
                 param_updates,
@@ -344,14 +343,14 @@ class StratifiedModel(EpiModel):
                 strata_names,
                 adjustment_requests,
                 compartment_types_to_stratify,
-                list(self.death_flows.T.to_dict().values()),
+                self.death_flows,
                 len(self.all_stratifications),
             )
 
             self.overwrite_parameters += overwritten_parameter_adjustment_names
             self.parameters.update(param_updates)
             if new_death_flows:
-                self.death_flows = self.death_flows.append(new_death_flows, ignore_index=True)
+                self.death_flows += new_death_flows
 
         if stratification_name in self.full_stratification_list:
             (
@@ -401,7 +400,7 @@ class StratifiedModel(EpiModel):
             )
             self.target_props[stratification_name] = strat_target_props
             if new_flows:
-                self.transition_flows = self.transition_flows.append(new_flows, ignore_index=True)
+                self.transition_flows += new_flows
 
         # Things that change
         # self.parameters
@@ -476,25 +475,21 @@ class StratifiedModel(EpiModel):
         # create list of all the parameters that we need to find the set of adjustment functions for
         parameters_to_adjust = []
 
+        implement = len(self.all_stratifications)
         transition_flow_indices = [
-            n_flow
-            for n_flow, flow in enumerate(self.transition_flows.type)
-            if "change" not in flow
-            and self.transition_flows.implement[n_flow] == len(self.all_stratifications)
+            idx
+            for idx, flow in enumerate(self.transition_flows)
+            if "change" not in flow["type"] and flow["implement"] == implement
         ]
 
         for n_flow in transition_flow_indices:
-            if (
-                self.transition_flows.implement[n_flow] == len(self.all_stratifications)
-                and self.transition_flows.parameter[n_flow] not in parameters_to_adjust
-            ):
-                parameters_to_adjust.append(self.transition_flows.parameter[n_flow])
-        for n_flow in range(self.death_flows.shape[0]):
-            if (
-                self.death_flows.implement[n_flow] == len(self.all_stratifications)
-                and self.death_flows.parameter[n_flow] not in parameters_to_adjust
-            ):
-                parameters_to_adjust.append(self.death_flows.parameter[n_flow])
+            flow = self.transition_flows[n_flow]
+            if flow["implement"] == implement and flow["parameter"] not in parameters_to_adjust:
+                parameters_to_adjust.append(flow["parameter"])
+
+        for flow in self.death_flows:
+            if flow["implement"] == implement and flow["parameter"] not in parameters_to_adjust:
+                parameters_to_adjust.append(flow["parameter"])
 
         # and adjust
         for parameter in parameters_to_adjust:
@@ -504,7 +499,7 @@ class StratifiedModel(EpiModel):
         # similarly for all model compartments
         for compartment in self.compartment_names:
             self.mortality_components[compartment] = self.find_mortality_components(compartment)
-            if len(self.all_stratifications) > 0:
+            if implement > 0:
                 self.create_mortality_functions(compartment, self.mortality_components[compartment])
 
     def find_mortality_components(self, _compartment):
@@ -720,11 +715,11 @@ class StratifiedModel(EpiModel):
         """
 
         # identify the indices of all the infection-related flows to be implemented
+        implement = len(self.all_stratifications)
         infection_flow_indices = [
             n_flow
-            for n_flow, flow in enumerate(self.transition_flows.type)
-            if "infection" in flow
-            and self.transition_flows.implement[n_flow] == len(self.all_stratifications)
+            for n_flow, flow in enumerate(self.transition_flows)
+            if "infection" in flow["type"] and flow["implement"] == implement
         ]
 
         # loop through and find the index of the mixing matrix applicable to the flow, of which there should be only one
@@ -732,10 +727,10 @@ class StratifiedModel(EpiModel):
             found = False
             for i_group, force_group in enumerate(self.mixing_categories):
                 if all(
-                    stratum in find_name_components(self.transition_flows.origin[n_flow])
+                    stratum in find_name_components(self.transition_flows[n_flow]["origin"])
                     for stratum in find_name_components(force_group)
                 ):
-                    self.transition_flows.force_index[n_flow] = i_group
+                    self.transition_flows[n_flow]["force_index"] = i_group
                     if found:
                         raise ValueError(
                             "mixing group found twice for transition flow number %s" % n_flow
@@ -813,11 +808,12 @@ class StratifiedModel(EpiModel):
         :return: list
             list of indices of the flows that need to be stratified
         """
+        implement = len(self.all_stratifications) - back_one
         return [
             idx
-            for idx, flow in self.transition_flows.iterrows()
-            if (flow.type != Flow.STRATA_CHANGE or include_change)
-            and flow.implement == len(self.all_stratifications) - back_one
+            for idx, flow in enumerate(self.transition_flows)
+            if (flow["type"] != Flow.STRATA_CHANGE or include_change)
+            and flow["implement"] == implement
         ]
 
     def find_change_indices_to_implement(self, back_one=0):
@@ -828,11 +824,11 @@ class StratifiedModel(EpiModel):
             back_one: int
              see find_transition_indices_to_implement
         """
+        implement = len(self.all_stratifications) - back_one
         return [
             idx
-            for idx, flow in self.transition_flows.iterrows()
-            if flow.type == Flow.STRATA_CHANGE
-            and flow.implement == len(self.all_stratifications) - back_one
+            for idx, flow in enumerate(self.transition_flows)
+            if flow["type"] == Flow.STRATA_CHANGE and flow["implement"] == implement
         ]
 
     def find_death_indices_to_implement(self, back_one=0):
@@ -846,9 +842,8 @@ class StratifiedModel(EpiModel):
         :return: list
             list of indices of the flows that need to be stratified
         """
-        return self.death_flows[
-            self.death_flows.implement == len(self.all_stratifications) - back_one
-        ].index
+        implement = len(self.all_stratifications) - back_one
+        return [idx for idx, flow in enumerate(self.death_flows) if flow["implement"] == implement]
 
     """
     methods to be called during the process of model running
@@ -906,10 +901,9 @@ class StratifiedModel(EpiModel):
             the total infectious quantity, whether that is the number or proportion of infectious persons
             needs to return as one for flows that are not transmission dynamic infectiousness flows
         """
-        flow_type = self.transition_flows_dict["type"][n_flow]
-        strain = self.transition_flows_dict["strain"][n_flow]
-        force_index = self.transition_flows_dict["force_index"][n_flow]
-
+        flow_type = self.transition_flows[n_flow]["type"]
+        strain = self.transition_flows[n_flow].get("strain")
+        force_index = self.transition_flows[n_flow].get("force_index")
         if "infection" not in flow_type:
             return 1.0
         strain = "all_strains" if not self.strains else strain
@@ -1015,7 +1009,7 @@ class StratifiedModel(EpiModel):
 
             # split out the components of the transition string, which follow the standard 6-character string "change"
             stratification, restriction, transition = find_name_components(
-                self.transition_flows.parameter[i_change]
+                self.transition_flows[i_change]["parameter"]
             )
             origin_stratum, _ = transition.split("_")
 
@@ -1032,16 +1026,16 @@ class StratifiedModel(EpiModel):
             # work out which stratum and compartment transitions should be going from and to
             if _cumulative_strata_props[origin_stratum] > _cumulative_target_props[origin_stratum]:
                 take_compartment, give_compartment, numerator, denominator = (
-                    self.transition_flows.origin[i_change],
-                    self.transition_flows.to[i_change],
+                    self.transition_flows[i_change]["origin"],
+                    self.transition_flows[i_change]["to"],
                     _cumulative_strata_props[origin_stratum],
                     _cumulative_target_props[origin_stratum],
                 )
 
             else:
                 take_compartment, give_compartment, numerator, denominator = (
-                    self.transition_flows.to[i_change],
-                    self.transition_flows.origin[i_change],
+                    self.transition_flows[i_change]["to"],
+                    self.transition_flows[i_change]["origin"],
                     1.0 - _cumulative_strata_props[origin_stratum],
                     1.0 - _cumulative_target_props[origin_stratum],
                 )

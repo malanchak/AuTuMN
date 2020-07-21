@@ -44,16 +44,10 @@ def verify_model(verify, model: StratifiedModel, key: str):
     """
     Model serializer - transform all relevant model info into basic Python data structures
     """
-    t_flows_df = model.transition_flows
-    flow_implement = t_flows_df.implement.max()
-    mask = t_flows_df["implement"] == flow_implement
-    t_flows_imp_df = t_flows_df[mask]
-    t_flows = list(t_flows_imp_df.T.to_dict().values())
-    d_flows_df = model.death_flows
-    flow_implement = d_flows_df.implement.max()
-    mask = d_flows_df["implement"] == flow_implement
-    d_flows_imp_df = d_flows_df[mask]
-    d_flows = list(d_flows_imp_df.T.to_dict().values())
+    max_imp = max(f.get("implement", 0) for f in model.transition_flows)
+    t_flows = [f for f in model.transition_flows if max_imp == 0 or f["implement"] == max_imp]
+    d_flows = [f for f in model.death_flows if max_imp == 0 or f["implement"] == max_imp]
+    t = lambda l: set(["---".join([f"{k}::{d[k]}" for k in sorted(d.keys())]) for d in l])
 
     verify(model.entry_compartment, f"{key}-entry_compartment")
     verify(model.birth_approach, f"{key}-birth_approach")
@@ -65,8 +59,8 @@ def verify_model(verify, model: StratifiedModel, key: str):
     verify(model.times, f"{key}-times")
     verify(model.all_stratifications, f"{key}-all_stratifications")
     verify(model.initial_conditions, f"{key}-initial_conditions")
-    # verify(t_flows, f"{key}-transition-flows")
-    verify(d_flows, f"{key}-death-flows")
+    verify(t(t_flows), f"{key}-transition-flows")
+    verify(t(d_flows), f"{key}-death-flows")
     verify(model.requested_flows, f"{key}-requested_flows")
     verify(list(model.adaptation_functions.keys()), f"{key}-adaptation_functions")
     verify(

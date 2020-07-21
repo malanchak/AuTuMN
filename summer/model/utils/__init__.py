@@ -222,7 +222,7 @@ def stratify_transition_flows(
                 if stratification_name == "strain" and flow["type"] != Flow.STRATA_CHANGE:
                     strain = stratum
                 else:
-                    strain = flow["strain"]
+                    strain = flow.get("strain")
 
                 new_flow = {
                     "type": flow["type"],
@@ -230,8 +230,14 @@ def stratify_transition_flows(
                     "origin": from_compartment,
                     "to": to_compartment,
                     "implement": implement_count,
-                    "strain": strain,
                 }
+                if strain:
+                    new_flow["strain"] = strain
+
+                force_index = flow.get("force_index")
+                if force_index:
+                    new_flow["force_index"] = force_index
+
                 new_flows.append(new_flow)
 
         else:
@@ -525,7 +531,6 @@ def combine_mixing_matrix(
                                 compartment, stratification_name, strata_names[n_stratum + 1],
                             ),
                             "implement": implement_count,
-                            "strain": float("nan"),
                         }
                         new_flows.append(new_flow)
 
