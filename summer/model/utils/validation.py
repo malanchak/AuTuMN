@@ -86,7 +86,10 @@ def get_stratify_schema(model, stratification_name, strata_names, compartment_ty
         },
         "adjustment_requests": {
             "type": "dict",
-            "keysrules": {"allowed": list(model.parameters.keys())},
+            "keysrules": {
+                "allowed": list(model.parameters.keys()),
+                "check_with": check_adj_request_key(compartment_types_to_stratify),
+            },
             "valuesrules": {
                 "type": "dict",
                 "keysrules": {"allowed": strata_names_strs + [f"{s}W" for s in strata_names_strs]},
@@ -116,6 +119,21 @@ def get_stratify_schema(model, stratification_name, strata_names, compartment_ty
             },
         },
     }
+
+
+def check_adj_request_key(compartment_types_to_stratify):
+    """
+    Check adjustment request keys
+    """
+
+    def _check(field, value, error):
+        if not compartment_types_to_stratify and value == "universal_death_rate":
+            error(
+                field,
+                "Universal death rate can only be adjusted for when all compartments are being stratified",
+            )
+
+    return _check
 
 
 def check_strata_request(strat_name, compartment_types_to_stratify):

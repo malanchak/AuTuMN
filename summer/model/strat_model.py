@@ -166,7 +166,9 @@ class StratifiedModel(EpiModel):
         self.overwrite_parameters = []
         self.strains = []
 
+        # Keeps track of comparements that are not partially stratified.
         self.full_stratification_list = []
+        # Keeps track of all stratifications and their strata.
         self.all_stratifications = {}
 
         self.final_parameter_functions = {}
@@ -230,18 +232,6 @@ class StratifiedModel(EpiModel):
         mixing_matrix: TODO
         target_props: TODO
 
-        ====== THINGS MATT BROKE ======
-        removed ability to just pass an int as strata_names and get an array from 1-N magically
-
-        ====== VALIDATION TODOS ======
-        - universal death rate param can only be stratified/adjusted when strat is applied to all compartment types
-        - all keys of target_proportions must be a type of strata requested as a part of this stratification
-       - Validate that all adjustment request parameters and strata actually exist already
-
-
-        OTHER NOTES
-        self.full_stratification_list keeps track of comparements that are not partially stratified
-        self.all_stratifications keeps track of all stratifications and their strata
         """
         utils.validate_stratify(
             self,
@@ -414,22 +404,22 @@ class StratifiedModel(EpiModel):
                 self.transition_flows = self.transition_flows.append(new_flows, ignore_index=True)
 
         # Things that change
-        self.parameters
-        self.time_variants
-        self.death_flows
-        self.adaptation_functions
-        self.available_death_rates
-        self.overwrite_parameters
-        self.strains
-        self.transition_flows
-        self.target_props
-        self.infectiousness_levels
-        self.mixing_matrix
-        self.mixing_categories
-        self.compartment_names
-        self.compartment_values
-        self.full_stratification_list
-        self.all_stratifications
+        # self.parameters
+        # self.time_variants
+        # self.death_flows
+        # self.adaptation_functions
+        # self.available_death_rates
+        # self.overwrite_parameters
+        # self.strains
+        # self.transition_flows
+        # self.target_props
+        # self.infectiousness_levels
+        # self.mixing_matrix
+        # self.mixing_categories
+        # self.compartment_names
+        # self.compartment_values
+        # self.full_stratification_list
+        # self.all_stratifications
 
     """
     pre-integration methods
