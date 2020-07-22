@@ -482,56 +482,57 @@ def combine_mixing_matrix(
 
     return combined_mixing_matrix, mixing_categories
 
-    def prepare_target_props(
-        target_props: Dict[str, Dict[str, float]],
-        stratification_name: str,
-        strata_names: List[str],
-        unstratified_compartment_names: List[str],
-        implement_count: int,
-    ):
-        """
-        create the dictionary of dictionaries that contains the target values for equlibration
 
-        :parameters:
-            target_props: dict
-                user submitted dictionary with keys the restrictions by previously implemented strata that apply
-            stratification_name: str
-                name of stratification process currently being implemented
-            strata_names: list
-                list of the names of the strata being implemented under the current stratification process
-        """
-        new_flows = []
-        strat_target_props = {}
-        for restriction in target_props:
-            strat_target_props[restriction] = {}
+def prepare_target_props(
+    target_props: Dict[str, Dict[str, float]],
+    stratification_name: str,
+    strata_names: List[str],
+    unstratified_compartment_names: List[str],
+    implement_count: int,
+):
+    """
+    create the dictionary of dictionaries that contains the target values for equlibration
 
-            # only need parameter values for the first n-1 strata, as the last one will be the remainder
-            for stratum in strata_names[:-1]:
-                strat_target_props[restriction][stratum] = target_props[restriction][stratum]
+    :parameters:
+        target_props: dict
+            user submitted dictionary with keys the restrictions by previously implemented strata that apply
+        stratification_name: str
+            name of stratification process currently being implemented
+        strata_names: list
+            list of the names of the strata being implemented under the current stratification process
+    """
+    new_flows = []
+    strat_target_props = {}
+    for restriction in target_props:
+        strat_target_props[restriction] = {}
 
-            # add in sequential series of flows between neighbouring strata that transition people between the strata being
-            # implemented in this stratification stage
-            # restriction: name of previously implemented stratum that this equilibration flow applies to, if any, otherwise "all"
-            for compartment in unstratified_compartment_names:
-                if restriction in find_name_components(compartment) or restriction == "all":
-                    for n_stratum in range(len(strata_names[:-1])):
-                        new_flow = {
-                            "type": Flow.STRATA_CHANGE,
-                            "parameter": stratification_name
-                            + "X"
-                            + restriction
-                            + "X"
-                            + strata_names[n_stratum]
-                            + "_"
-                            + strata_names[n_stratum + 1],
-                            "origin": create_stratified_name(
-                                compartment, stratification_name, strata_names[n_stratum],
-                            ),
-                            "to": create_stratified_name(
-                                compartment, stratification_name, strata_names[n_stratum + 1],
-                            ),
-                            "implement": implement_count,
-                        }
-                        new_flows.append(new_flow)
+        # only need parameter values for the first n-1 strata, as the last one will be the remainder
+        for stratum in strata_names[:-1]:
+            strat_target_props[restriction][stratum] = target_props[restriction][stratum]
 
-            return strat_target_props, new_flows
+        # add in sequential series of flows between neighbouring strata that transition people between the strata being
+        # implemented in this stratification stage
+        # restriction: name of previously implemented stratum that this equilibration flow applies to, if any, otherwise "all"
+        for compartment in unstratified_compartment_names:
+            if restriction in find_name_components(compartment) or restriction == "all":
+                for n_stratum in range(len(strata_names[:-1])):
+                    new_flow = {
+                        "type": Flow.STRATA_CHANGE,
+                        "parameter": stratification_name
+                        + "X"
+                        + restriction
+                        + "X"
+                        + strata_names[n_stratum]
+                        + "_"
+                        + strata_names[n_stratum + 1],
+                        "origin": create_stratified_name(
+                            compartment, stratification_name, strata_names[n_stratum],
+                        ),
+                        "to": create_stratified_name(
+                            compartment, stratification_name, strata_names[n_stratum + 1],
+                        ),
+                        "implement": implement_count,
+                    }
+                    new_flows.append(new_flow)
+
+        return strat_target_props, new_flows

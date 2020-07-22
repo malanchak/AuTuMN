@@ -716,37 +716,3 @@ class EpiModel:
                 ]
             )
         ]
-
-    """
-    simple output methods, although most outputs will be managed outside of this module
-    """
-
-    def get_total_compartment_size(self, compartment_tags):
-        """
-        find the total values of the compartments listed by the user
-
-        :param compartment_tags: list
-            list of string variables for the compartment stems of interest
-        """
-        indices_to_plot = [
-            i_comp
-            for i_comp in range(len(self.compartment_names))
-            if find_stem(self.compartment_names[i_comp]) in compartment_tags
-        ]
-        return self.outputs[:, indices_to_plot].sum(axis=1)
-
-    def plot_compartment_size(self, compartment_tags, multiplier=1.0):
-        """
-        plot the aggregate population of the compartments, the name of which contains all items of the list
-            compartment_tags
-        kept very simple for now, because output visualisation will generally be done outside of python
-
-        :param compartment_tags: list
-            string variables for the compartments to plot
-        :param multiplier: float
-            scalar value to multiply the compartment values by
-        """
-        matplotlib.pyplot.plot(
-            self.times, multiplier * self.get_total_compartment_size(compartment_tags)
-        )
-        matplotlib.pyplot.show()
