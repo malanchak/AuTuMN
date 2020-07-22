@@ -49,6 +49,8 @@ def verify_model(verify, model: StratifiedModel, key: str):
     d_flows = [f for f in model.death_flows if max_imp == 0 or f["implement"] == max_imp]
     t = lambda l: set(["---".join([f"{k}::{d[k]}" for k in sorted(d.keys())]) for d in l])
 
+    verify(model.compartment_names, f"{key}-compartment_names")
+    verify(model.compartment_values, f"{key}-compartment_values")
     verify(model.entry_compartment, f"{key}-entry_compartment")
     verify(model.birth_approach, f"{key}-birth_approach")
     verify(model.infectious_compartment, f"{key}-infectious_compartment")

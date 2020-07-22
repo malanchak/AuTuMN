@@ -21,7 +21,7 @@ def validate_stratify(
     model,
     stratification_name,
     strata_request,
-    compartment_types_to_stratify,
+    compartments_to_stratify,
     requested_proportions,
     entry_proportions,
     adjustment_requests,
@@ -30,13 +30,13 @@ def validate_stratify(
     target_props,
 ):
     schema = get_stratify_schema(
-        model, stratification_name, strata_request, compartment_types_to_stratify
+        model, stratification_name, strata_request, compartments_to_stratify
     )
     validator = Validator(schema, allow_unknown=True, require_all=True)
     stratify_data = {
         "stratification_name": stratification_name,
         "strata_request": strata_request,
-        "compartment_types_to_stratify": compartment_types_to_stratify,
+        "compartments_to_stratify": compartments_to_stratify,
         "requested_proportions": requested_proportions,
         "entry_proportions": entry_proportions,
         "adjustment_requests": adjustment_requests,
@@ -50,7 +50,7 @@ def validate_stratify(
         raise ValidationException(errors)
 
 
-def get_stratify_schema(model, stratification_name, strata_names, compartment_types_to_stratify):
+def get_stratify_schema(model, stratification_name, strata_names, compartments_to_stratify):
     """
     Schema used to validate model attributes during initialization.
     """
@@ -62,10 +62,10 @@ def get_stratify_schema(model, stratification_name, strata_names, compartment_ty
         },
         "strata_request": {
             "type": "list",
-            "check_with": check_strata_request(stratification_name, compartment_types_to_stratify),
+            "check_with": check_strata_request(stratification_name, compartments_to_stratify),
             "schema": {"type": ["string", "integer"]},
         },
-        "compartment_types_to_stratify": {
+        "compartments_to_stratify": {
             "type": "list",
             "schema": {"type": "string"},
             "allowed": model.compartment_types,
@@ -88,7 +88,7 @@ def get_stratify_schema(model, stratification_name, strata_names, compartment_ty
             "type": "dict",
             "keysrules": {
                 "allowed": list(model.parameters.keys()),
-                "check_with": check_adj_request_key(compartment_types_to_stratify),
+                "check_with": check_adj_request_key(compartments_to_stratify),
             },
             "valuesrules": {
                 "type": "dict",
@@ -121,13 +121,13 @@ def get_stratify_schema(model, stratification_name, strata_names, compartment_ty
     }
 
 
-def check_adj_request_key(compartment_types_to_stratify):
+def check_adj_request_key(compartments_to_stratify):
     """
     Check adjustment request keys
     """
 
     def _check(field, value, error):
-        if not compartment_types_to_stratify and value == "universal_death_rate":
+        if not compartments_to_stratify and value == "universal_death_rate":
             error(
                 field,
                 "Universal death rate can only be adjusted for when all compartments are being stratified",
@@ -136,7 +136,7 @@ def check_adj_request_key(compartment_types_to_stratify):
     return _check
 
 
-def check_strata_request(strat_name, compartment_types_to_stratify):
+def check_strata_request(strat_name, compartments_to_stratify):
     """
     Strata requested must be well formed.
     """
@@ -145,7 +145,7 @@ def check_strata_request(strat_name, compartment_types_to_stratify):
         if strat_name == "age":
             if not min([int(s) for s in value]) == 0:
                 error(field, "First age strata must be '0'")
-            if compartment_types_to_stratify:
+            if compartments_to_stratify:
                 error(field, "Age stratification must be applied to all compartments")
 
     return _check

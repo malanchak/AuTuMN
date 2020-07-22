@@ -50,7 +50,7 @@ class StratifiedModel(EpiModel):
         keys are all the stratification names implemented so far. values are the list of strata for each stratification
     :attribute available_death_rates: list
         single strata names for which population_wide mortality will be adjusted (or over-written)
-    :attribute compartment_types_to_stratify: list
+    :attribute compartments_to_stratify: list
         the compartments that are being stratified at this round of model stratification
     :attribute final_parameter_functions: dict
         a function representing each parameter that will be implemented during integration,
@@ -211,7 +211,7 @@ class StratifiedModel(EpiModel):
         self,
         stratification_name: str,
         strata_request: List[str],
-        compartment_types_to_stratify: List[str],
+        compartments_to_stratify: List[str],
         requested_proportions: Dict[str, float] = {},
         entry_proportions: Dict[str, float] = {},
         adjustment_requests: Dict[str, Dict[str, float]] = {},
@@ -224,7 +224,7 @@ class StratifiedModel(EpiModel):
 
         stratification_name: The name of the stratification
         strata_names: The names of the strata to apply
-        compartment_types_to_stratify: The compartments that will have the stratification applied. Falsey args interpreted as "all".
+        compartments_to_stratify: The compartments that will have the stratification applied. Falsey args interpreted as "all".
         requested_proportions: Request to split existing population in the compartments according to specific proprotions
         entry_proportions: TODO
         adjustment_requests: TODO
@@ -233,11 +233,12 @@ class StratifiedModel(EpiModel):
         target_props: TODO
 
         """
+
         utils.validate_stratify(
             self,
             stratification_name,
             strata_request,
-            compartment_types_to_stratify,
+            compartments_to_stratify,
             requested_proportions,
             entry_proportions,
             adjustment_requests,
@@ -245,12 +246,13 @@ class StratifiedModel(EpiModel):
             mixing_matrix,
             target_props,
         )
-        if not compartment_types_to_stratify:
+        # Retain copy of compartment names in their stratified form to refer back to during stratification process
+        unstratified_compartment_names = copy.copy(self.compartment_names)
+        if not compartments_to_stratify:
             # Stratify all compartments.
-            compartment_types_to_stratify = self.compartment_types
+            compartments_to_stratify = self.compartment_types
             self.full_stratification_list.append(stratification_name)
 
-        # Check age stratification
         if stratification_name == "age":
             # Ensure age strata are sorted... for some reason?
             strata_names = sorted(strata_request)
@@ -260,33 +262,40 @@ class StratifiedModel(EpiModel):
 
         strata_names = [str(s) for s in strata_request]
         self.all_stratifications[stratification_name] = strata_names
-        requested_proportions = utils.get_all_proportions(strata_names, requested_proportions)
-        adjustment_requests = utils.parse_param_adjustment_overwrite(
-            strata_names, adjustment_requests
-        )
 
-        # Retain copy of compartment names in their stratified form to refer back to during stratification process
-        unstratified_compartment_names = copy.copy(self.compartment_names)
+        # if stratifying by strain
+        self.strains = strata_names if stratification_name == "strain" else self.strains
+
+        if mixing_matrix is not None:
+            # check submitted mixing matrix and combine with existing matrix, if any
+            combined_mixing_matrix, mixing_categories = utils.combine_mixing_matrix(
+                self.mixing_categories,
+                self.mixing_matrix,
+                mixing_matrix,
+                stratification_name,
+                strata_names,
+            )
+            self.mixing_categories = mixing_categories
+            self.mixing_matrix = combined_mixing_matrix
+
+        # Prepare infectiousness levels attribute
+        for stratum, level in infectiousness_adjustments.items():
+            stratum_name = create_stratum_name(stratification_name, stratum, joining_string="")
+            self.infectiousness_levels[stratum_name] = level
 
         # Stratify compartments, split according to split_proportions
-        to_add, to_remove = utils.get_stratified_compartments(
+        self.compartment_names, self.compartment_values = utils.get_stratified_compartments(
             stratification_name,
             strata_names,
-            compartment_types_to_stratify,
+            compartments_to_stratify,
             requested_proportions,
             self.compartment_names,
             self.compartment_values,
         )
-        for name, value in to_add.items():
-            # Add new stratified compartments
-            self.compartment_names.append(name)
-            self.compartment_values.append(value)
 
-        for name in to_remove:
-            # Remove the original compartments, since they have now been stratified.
-            remove_idx = self.compartment_names.index(name)
-            del self.compartment_values[remove_idx]
-            del self.compartment_names[remove_idx]
+        adjustment_requests = utils.parse_param_adjustment_overwrite(
+            strata_names, adjustment_requests
+        )
 
         if stratification_name == "age":
             # Work out ageing flows.
@@ -308,7 +317,7 @@ class StratifiedModel(EpiModel):
             stratification_name,
             strata_names,
             adjustment_requests,
-            compartment_types_to_stratify,
+            compartments_to_stratify,
             self.transition_flows,
             len(self.all_stratifications),
         )
@@ -326,7 +335,7 @@ class StratifiedModel(EpiModel):
         self.transition_flows += new_flows
 
         # Stratify the entry flows
-        if self.entry_compartment in compartment_types_to_stratify:
+        if self.entry_compartment in compartments_to_stratify:
             param_updates, time_variant_updates = utils.stratify_entry_flows(
                 stratification_name, strata_names, entry_proportions, self.time_variants,
             )
@@ -342,7 +351,7 @@ class StratifiedModel(EpiModel):
                 stratification_name,
                 strata_names,
                 adjustment_requests,
-                compartment_types_to_stratify,
+                compartments_to_stratify,
                 self.death_flows,
                 len(self.all_stratifications),
             )
@@ -361,33 +370,13 @@ class StratifiedModel(EpiModel):
                 stratification_name,
                 strata_names,
                 adjustment_requests,
-                compartment_types_to_stratify,
+                compartments_to_stratify,
                 self.time_variants,
                 self.parameters,
             )
             self.adaptation_functions.update(adaptation_function_updates)
             self.available_death_rates += available_death_rates
             self.overwrite_parameters += overwritten_parameter_adjustment_names
-
-        # if stratifying by strain
-        self.strains = strata_names if stratification_name == "strain" else self.strains
-
-        if mixing_matrix is not None:
-            # check submitted mixing matrix and combine with existing matrix, if any
-            combined_mixing_matrix, mixing_categories = utils.combine_mixing_matrix(
-                self.mixing_categories,
-                self.mixing_matrix,
-                mixing_matrix,
-                stratification_name,
-                strata_names,
-            )
-            self.mixing_categories = mixing_categories
-            self.mixing_matrix = combined_mixing_matrix
-
-        # Prepare infectiousness levels attribute
-        for stratum, level in infectiousness_adjustments.items():
-            stratum_name = create_stratum_name(stratification_name, stratum, joining_string="")
-            self.infectiousness_levels[stratum_name] = level
 
         # prepare strata equilibration target proportions
         if target_props:

@@ -42,7 +42,7 @@ def _build_model(*args, **kwargs):
     model.stratify(
         Stratification.AGE,
         strata_request=[0, 5, 15, 60],
-        compartment_types_to_stratify=[],
+        compartments_to_stratify=[],
         requested_proportions={},
     )
     return model

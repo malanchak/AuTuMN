@@ -143,7 +143,7 @@ def build_model(params: dict, update_params={}) -> StratifiedModel:
         tb_sir_model.stratify(
             "strain",
             ["ds", "inh_R", "rif_R", "mdr"],
-            compartment_types_to_stratify=[
+            compartments_to_stratify=[
                 Compartment.EARLY_LATENT,
                 Compartment.LATE_LATENT,
                 Compartment.INFECTIOUS,

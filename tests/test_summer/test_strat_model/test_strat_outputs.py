@@ -32,7 +32,7 @@ def test_strat_model__with_age__expect_ageing():
     model.stratify(
         Stratification.AGE,
         strata_request=[0, 5, 15, 60],
-        compartment_types_to_stratify=[],
+        compartments_to_stratify=[],
         requested_proportions={},
     )
     # Run the model for 5 years.
@@ -69,7 +69,7 @@ def test_strat_model__with_age_and_starting_proportion__expect_ageing():
     model.stratify(
         Stratification.AGE,
         strata_request=[0, 5, 15, 60],
-        compartment_types_to_stratify=[],
+        compartments_to_stratify=[],
         requested_proportions={"0": 0.8, "5": 0.1, "15": 0.1},
     )
     # Run the model for 5 years.
@@ -106,7 +106,7 @@ def test_strat_model__with_locations__expect_no_change():
     model.stratify(
         Stratification.LOCATION,
         strata_request=["rural", "urban", "prison"],
-        compartment_types_to_stratify=[],
+        compartments_to_stratify=[],
         requested_proportions={"rural": 0.44, "urban": 0.55, "prison": 0.01},
     )
     # Run the model for 5 years.
@@ -151,7 +151,7 @@ def test_strat_model__with_locations_and_mixing__expect_varied_transmission():
     model.stratify(
         Stratification.LOCATION,
         strata_request=["rural", "urban", "prison"],
-        compartment_types_to_stratify=[],
+        compartments_to_stratify=[],
         requested_proportions={},
         mixing_matrix=np.array(
             [

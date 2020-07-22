@@ -135,16 +135,12 @@ def build_model(params: dict) -> StratifiedModel:
 
     # Implement seasonal forcing if requested, making contact rate a time-variant rather than constant
     if model_parameters["seasonal_force"]:
-        seasonal_forcing_function = \
-            get_seasonal_forcing(
-                365., 173., model_parameters["seasonal_force"], model_parameters["contact_rate"]
-            )
-        model.time_variants["contact_rate"] = \
-            seasonal_forcing_function
-        model.adaptation_functions["contact_rate"] = \
-            seasonal_forcing_function
-        model.parameters["contact_rate"] = \
-            "contact_rate"
+        seasonal_forcing_function = get_seasonal_forcing(
+            365.0, 173.0, model_parameters["seasonal_force"], model_parameters["contact_rate"]
+        )
+        model.time_variants["contact_rate"] = seasonal_forcing_function
+        model.adaptation_functions["contact_rate"] = seasonal_forcing_function
+        model.parameters["contact_rate"] = "contact_rate"
 
     # Stratify model by age
     # Coerce age breakpoint numbers into strings - all strata are represented as strings
@@ -176,7 +172,7 @@ def build_model(params: dict) -> StratifiedModel:
     model.stratify(
         "agegroup",
         agegroup_strata,
-        compartment_types_to_stratify=[],  # Apply to all compartments
+        compartments_to_stratify=[],  # Apply to all compartments
         requested_proportions=requested_props,
         mixing_matrix=static_mixing_matrix,
         adjustment_requests=adjust_requests,
@@ -218,10 +214,13 @@ def build_model(params: dict) -> StratifiedModel:
     model.derived_output_functions["prevXlateXclinical_icuXamong"] = outputs.calculate_icu_prev
 
     model.derived_output_functions["hospital_occupancy"] = outputs.calculate_hospital_occupancy
-    model.derived_output_functions["proportion_seropositive"] = outputs.calculate_proportion_seropositive
+    model.derived_output_functions[
+        "proportion_seropositive"
+    ] = outputs.calculate_proportion_seropositive
 
     model.death_output_categories = list_all_strata_for_mortality(model.compartment_names)
     model.derived_output_functions["years_of_life_lost"] = outputs.get_calculate_years_of_life_lost(
-        life_expectancy_latest)
+        life_expectancy_latest
+    )
 
     return model
