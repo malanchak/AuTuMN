@@ -67,7 +67,7 @@ def build_model(params: dict, update_params={}) -> StratifiedModel:
             'to': Compartment.LATE_LATENT
         },
         {
-            'type': 'standard_flows',
+            'type': 'infection_frequency',
             'parameter': 'delta',
             'origin': Compartment.RECOVERED,
             'to': Compartment.EARLY_LATENT
