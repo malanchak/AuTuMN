@@ -26,6 +26,7 @@ EXCEL_PATH = os.path.join(DATA_PATH, "xls")
 class Region:
     AUSTRALIA = "australia"
     PHILIPPINES = "philippines"
+    VIETNAM = "vietnam"
     MALAYSIA = "malaysia"
     VICTORIA = "victoria"
     NSW = "nsw"
