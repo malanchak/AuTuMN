@@ -11,10 +11,10 @@ from .model import build_model
 
 
 class Country:
-    AUSTRALIA = "australia"
+    VIETNAM = "vietnam"
     PHILIPPINES = "philippines"
     COUNTRIES = [
-        AUSTRALIA,
+        VIETNAM,
         PHILIPPINES,
     ]
 
