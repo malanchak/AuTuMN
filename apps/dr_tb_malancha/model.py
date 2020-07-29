@@ -105,20 +105,12 @@ def build_model(params: dict, update_params={}) -> StratifiedModel:
 # #   add  time_variant parameters
 
     def time_variant_CDR():
-        return scale_up_function(params['cdr'].keys(), params['cdr'].values(), smoothness=0.2, method=5)
-
-    def time_variant_TSR():
-        return scale_up_function(params['tsr'].keys(), params['tsr'].values(), smoothness=0.2, method=5)
-
-    def time_variant_DST():
-        return scale_up_function(params['dst'].keys(), params['dst'].values(), smoothness=0.2, method=5)
+        return scale_up_function(params['cdr'].keys(), params['cdr'].values(), method=4)
 
     my_tv_CDR = time_variant_CDR()
-    my_tv_TSR = time_variant_TSR()
-    my_tv_DST = time_variant_DST()
 
-    def my_tv_tau(time):
-        return my_tv_detection_rate(time) * my_tv_TSR(time) * my_tv_DST(time)
+    def my_tv_tau(time):  # this is for DS-TB
+        return my_tv_detection_rate(time) * params['TSR']
 
     tb_sir_model.adaptation_functions["tau"] = my_tv_tau
     tb_sir_model.parameters["tau"] = "tau"
@@ -138,48 +130,57 @@ def build_model(params: dict, update_params={}) -> StratifiedModel:
             compartment_types_to_stratify=[Compartment.EARLY_LATENT, Compartment.LATE_LATENT, Compartment.INFECTIOUS],
             requested_proportions={'ds': 1., 'inh_R': 0., 'rif_R':0., 'mdr': 0.}, #adjustment_requests={'tau': tau_adjustment},
             verbose=False,
-            adjustment_requests={'beta': {'ds': 1., 'inh_R': 0.9, 'rif_R': 0.7, 'mdr': 0.5}})
-
+            adjustment_requests={
+                'beta': {'ds': 1., 'inh_R': 0.9, 'rif_R': 0.7, 'mdr': 0.5},
+                'tau': {'ds': 1., 'inh_R': params['relative_TSR_H'], 'rif_R': params['relative_TSR_R'], 'mdr': params['relative_TSR_MDR']}
+                }
+        )
 
         # set up some amplification flows
-        # INH_R
+        # from DS to INH_R
         tb_sir_model.add_transition_flow(
-                    {"type": "standard_flows", "parameter": "dr_amplification_inh",
+                    {"type": "standard_flows", "parameter": "dr_amplification_ds_to_inh",
                      "origin": "infectiousXstrain_ds", "to": "infectiousXstrain_inh_R",
                      "implement": len(tb_sir_model.all_stratifications)})
 
-        def tv_amplification_inh_rate(time):
-            return my_tv_detection_rate(time) * (1 - my_tv_TSR(time)) * params['prop_of_failures_developing_inh_R']
+        def tv_amplification_ds_to_inh_rate(time):
+            return my_tv_detection_rate(time) * (1 - params['TSR']) * params['prop_of_failures_developing_inh_R']
 
-        tb_sir_model.adaptation_functions["dr_amplification_inh"] = tv_amplification_inh_rate
-        tb_sir_model.parameters["dr_amplification_inh"] = "dr_amplification_inh"
+        tb_sir_model.adaptation_functions["dr_amplification_ds_to_inh"] = tv_amplification_ds_to_inh_rate
+        tb_sir_model.parameters["dr_amplification_ds_to_inh"] = "dr_amplification_inh"
 
 
-        # set up amplification flow for RIF_R
+        # set up amplification flow for DS to RIF_R  # FIXME
+        # tb_sir_model.add_transition_flow(
+        #             {"type": "standard_flows", "parameter": "dr_amplification_rif",
+        #              "origin": "infectiousXstrain_ds", "to": "infectiousXstrain_rif_R",
+        #              "implement": len(tb_sir_model.all_stratifications)})
+        #
+        # def tv_amplification_rif_rate(time):
+        #     return my_tv_detection_rate(time) * (1 - params['TSR']) * params['prop_of_failures_developing_rif_R']
+        #
+        # tb_sir_model.adaptation_functions["dr_amplification_rif"] = tv_amplification_rif_rate
+        # tb_sir_model.parameters["dr_amplification_rif"] = "dr_amplification_rif"
+
+
+        # set up amplification flow for INH to MDR
         tb_sir_model.add_transition_flow(
-                    {"type": "standard_flows", "parameter": "dr_amplification_rif",
-                     "origin": "infectiousXstrain_ds", "to": "infectiousXstrain_rif_R",
-                     "implement": len(tb_sir_model.all_stratifications)})
-
-        def tv_amplification_rif_rate(time):
-            return my_tv_detection_rate(time) * (1 - my_tv_TSR(time)) * params['prop_of_failures_developing_rif_R']
-
-        tb_sir_model.adaptation_functions["dr_amplification_rif"] = tv_amplification_rif_rate
-        tb_sir_model.parameters["dr_amplification_rif"] = "dr_amplification_rif"
-
-
-        # set up amplification flow for MDR
-
-        tb_sir_model.add_transition_flow(
-                {"type": "standard_flows", "parameter": "dr_amplification_rif",
+                {"type": "standard_flows", "parameter": "dr_amplification_inh_to_mdr",
                  "origin": "infectiousXstrain_inh_R", "to": "infectiousXstrain_mdr",
                  "implement": len(tb_sir_model.all_stratifications)})
 
-    
-        tb_sir_model.add_transition_flow(
-                {"type": "standard_flows", "parameter": "dr_amplification_inh",
-                 "origin": "infectiousXstrain_rif_R", "to": "infectiousXstrain_mdr",
-                 "implement": len(tb_sir_model.all_stratifications)})
+        def tv_amplification_inh_to_mdr_rate(time):
+            return my_tv_detection_rate(time) * (1 - params['TSR'] * params['relative_TSR_H']) * params['prop_of_failures_developing_inh_R']
+
+        tb_sir_model.adaptation_functions["dr_amplification_inh_to_mdr"] = tv_amplification_inh_to_mdr_rate
+        tb_sir_model.parameters["dr_amplification_inh_to_mdr"] = "dr_amplification_inh_to_mdr"
+
+
+        # set up amplification flow for RIF to RIF_R    # FIXME
+        # tb_sir_model.add_transition_flow(
+        #         {"type": "standard_flows", "parameter": "dr_amplification_inh",
+        #          "origin": "infectiousXstrain_rif_R", "to": "infectiousXstrain_mdr",
+        #          "implement": len(tb_sir_model.all_stratifications)})
 
 
     # tb_sir_model.transition_flows.to_csv("transitions.csv")
