@@ -23,11 +23,18 @@ from apps import dr_tb_malancha
 
 
 
-## Malancha's model
+## Malancha's vietnam model
 REGION = Region.VIETNAM
 RUN_SCENARIOS = True
 region_app = dr_tb_malancha.get_region_app(REGION)
 region_app.run_model(RUN_SCENARIOS)
+
+# ## Malancha's Philippines model
+# REGION = Region.PHILIPPINES
+# RUN_SCENARIOS = True
+# region_app = dr_tb_malancha.get_region_app(REGION)
+# region_app.run_model(RUN_SCENARIOS)
+
 
 # marshall_islands.run_model()
 
