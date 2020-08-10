@@ -7,13 +7,22 @@ country: philippines
 iso3: PHL
 
 start_time: 1900.
-beta: 4.5
+beta: 5.1
 
-TSR: .70 # data reported in WHO
+infect_death: .054
+
+detection_rate: 0.45 # solve using CDR value and equation # data obtained for Philippines
+
+TSR: .85 # data reported in WHO
+
+relative_TSR_MDR: .67
+relative_TSR_H: .5
+relative_TSR_R: .67
 
 cdr:
   1950: 0.
-  2015: .50
+  1970: 0.02
+  2015: .05
 
-prop_of_failures_developing_inh_R: 0.065
-prop_of_failures_developing_rif_R: 0.015
+prop_of_failures_developing_inh_R: 11
+prop_of_failures_developing_rif_R: 0.8
