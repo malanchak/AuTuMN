@@ -4,74 +4,26 @@
 country: vietnam
 iso3: VIT
 
-scenario_start_time: 2020.0
-
 start_time: 1900.
-end_time: 2035.
-time_step: 1.
+beta: 5
 
-beta: 5.1
-
-time_step: 1.
-
-gamma: 0.2 
-universal_death_rate: 0.0142
-universal_death_rateX: 0.0142
-
-
-
-kappa: 3.6525 # (1.e-2 * 365.25)
-nu: 0.002008875 # (5.5e-6 * 365.25)
-epsilon: 0.401775 #(1.1e-3 * 365.25)
-
-
-rr_reinfection_once_recovered: 0.05
-
-# rr_reinfection_once_infected: 1
 
 infect_death: .08 # WHO data
-  
-
-prop_of_failures_developing_inh_R: 0.038
-  
-prop_of_failures_developing_rif_R: 0.001
 
 detection_rate: 0.39 # solve using CDR value and equation # data obtained for vietnam
-DST: 1
-TSR: .87 # data reported in WHO
 
+TSR: .90 # data reported in WHO
+
+relative_TSR_MDR: .75
+relative_TSR_H: .65
+relative_TSR_R: .75
 
 cdr:
-    1950.: 0.2
-    1960.: .3 
-    1970.: .45
-    1980.: .55
-    1990.: .65
-    2000.: .65
-    2010.: .65
-    2015.: .68
-
-tsr: 
-    1950.: 0.3
-    1960.: .4
-    1970.: .45 
-    1980.: .55
-    1990.: .55 
-    2000.: .65
-    2010.: .65
-    2015.: .65
-
-dst: 
-    1950.: 0.3 
-    1960.: .4
-    1970.: .45
-    1980.: .55 
-    1990.: .65
-    2000.: .65
-    2010.: .65
-    2015.: .65
+    1950.: 0.0
+    1970.: 0.4
+    2015.: .5
 
 
 
-scenarios: {}
-# # N.B: Scenario keys have to be sequential integers from one, or won't be compatible with dashboards
+prop_of_failures_developing_inh_R: 5.5
+prop_of_failures_developing_rif_R: 0.027
