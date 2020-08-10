@@ -16,7 +16,7 @@ def run_calibration_chain(max_seconds: int, run_id: int, num_chains: int):
 
 
 PAR_PRIORS = [
-    {"param_name": "beta", "distribution": "uniform", "distri_params": [4.0, 5.0]},
+    {"param_name": "beta", "distribution": "uniform", "distri_params": [3.0, 7.0]},
     {"param_name": "epsilon", "distribution": "lognormal", "distri_params": [-6.78, 0.15]},
     {"param_name": "kappa", "distribution": "lognormal", "distri_params": [-4.50, 0.13]},
     {"param_name": "nu", "distribution": "lognormal", "distri_params": [-11.99, 0.34]},
@@ -31,12 +31,12 @@ PAR_PRIORS = [
     {
         "param_name": "prop_of_failures_developing_inh_R",
         "distribution": "uniform",
-        "distri_params": [0.01, 0.2],
+        "distri_params": [8, 15],
     },
     {
         "param_name": "prop_of_failures_developing_rif_R",
         "distribution": "uniform",
-        "distri_params": [0.0005, 0.005],
+        "distri_params": [0.5, 1.5],
     },
 ]
 
@@ -51,25 +51,25 @@ TARGET_OUTPUTS = [
     {
         "output_key": "prevXinfectiousXamong",
         "years": [2007, 2016],
-        "values": [463, 512],
+        "values": [660, 1159],
         "loglikelihood_distri": "normal",
     },
     {
         "output_key": "prevXinfectiousXstrain_inh_RXamongXinfectious",
         "years": [2007, 2016],
-        "values": [6.1, 10.26],
+        "values": [9.44, 12.43],
         "loglikelihood_distri": "normal",
     },
     {
         "output_key": "prevXinfectiousXstrain_rif_RXamongXinfectious",
         "years": [2007, 2016],
-        "values": [0.8, 0.61],
+        "values": [1.008, 0.82],
         "loglikelihood_distri": "normal",
     },
     {
         "output_key": "prevXinfectiousXstrain_mdrXamongXinfectious",
         "years": [2007, 2016],
-        "values": [1.5, 1.39],
+        "values": [5.8, 3.35],
         "loglikelihood_distri": "normal",
     },
 ]
