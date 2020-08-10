@@ -1,11 +1,11 @@
 from autumn.constants import Region
 from . import (
-    australia,
+    vietnam,
     philippines,
 )
 
 CALIBRATIONS = {
-    Region.AUSTRALIA: australia.run_calibration_chain,
+    Region.VIETNAM: vietnam.run_calibration_chain,
     Region.PHILIPPINES: philippines.run_calibration_chain,
 }
 
