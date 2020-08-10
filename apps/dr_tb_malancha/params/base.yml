@@ -9,7 +9,8 @@ start_time: 1900.
 end_time: 2035.
 time_step: 1.
 
-beta: 4.55
+# beta: 4.55
+
 gamma: 0.2 
 universal_death_rate: 0.0142
 universal_death_rateX: 0.0142
@@ -21,19 +22,8 @@ nu: 0.002008875 # (5.5e-6 * 365.25)
 epsilon: 0.401775 #(1.1e-3 * 365.25)
 
 
-rr_reinfection_once_recovered: 1
-rr_reinfection_once_infected: 1
+rr_reinfection_once_recovered: 0.05
 
-infect_death: .054
-
-prop_of_failures_developing_inh_R: 0.001
-prop_of_failures_developing_rif_R: 0.001
-
-TSR: .85 # data reported in WHO
-
-relative_TSR_MDR: .5
-relative_TSR_H: .5
-relative_TSR_R: .5
 
 
 cdr: {}
