@@ -9,7 +9,7 @@ outputs_to_plot:
 
   - name: prevXinfectiousXstrain_rif_RXamongXinfectious
     target_times: [2011]
-    target_values: [[0.23, 0.04, 0.42]]
+    target_values: [[0.23, 0.1, 0.35]]
 
   - name: prevXinfectiousXstrain_mdrXamongXinfectious
     target_times: [2011]
