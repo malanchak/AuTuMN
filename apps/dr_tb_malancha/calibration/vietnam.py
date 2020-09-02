@@ -31,7 +31,7 @@ PAR_PRIORS = [
         "param_name": "prop_of_failures_developing_inh_R",
         "distribution": "uniform",
         "distri_params": [3, 8],
-    },
+    }, 
     {
         "param_name": "prop_of_failures_developing_rif_R",
         "distribution": "uniform",
