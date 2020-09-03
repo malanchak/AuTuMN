@@ -1,5 +1,6 @@
 from autumn.constants import Region
 from apps.dr_tb_malancha.calibration import base
+from .utils import get_prior_distributions
 
 
 def run_calibration_chain(max_seconds: int, run_id: int, num_chains: int):
@@ -15,29 +16,7 @@ def run_calibration_chain(max_seconds: int, run_id: int, num_chains: int):
     )
 
 
-PAR_PRIORS = [
-    {"param_name": "beta", "distribution": "uniform", "distri_params": [3.0, 7.0],},
-    {"param_name": "epsilon", "distribution": "lognormal", "distri_params": [-6.78, 0.15]},
-    {"param_name": "kappa", "distribution": "lognormal", "distri_params": [-4.50, 0.13]},
-    {"param_name": "nu", "distribution": "lognormal", "distri_params": [-11.99, 0.34]},
-    {"param_name": "gamma", "distribution": "gamma", "distri_mean": 0.2, "distri_ci": [0.16, 0.29]},
-    {
-        "param_name": "infect_death",
-        "distribution": "gamma",
-        "distri_mean": 0.08,
-        "distri_ci": [.06, 1.06],
-    },
-    {
-        "param_name": "prop_of_failures_developing_inh_R",
-        "distribution": "uniform",
-        "distri_params": [3, 8],
-    }, 
-    {
-        "param_name": "prop_of_failures_developing_rif_R",
-        "distribution": "uniform",
-        "distri_params": [0.01, 0.05],
-    },
-]
+PAR_PRIORS = get_prior_distributions()
 
 MULTIPLIERS = {
     "prevXinfectiousXamong": 100000,
