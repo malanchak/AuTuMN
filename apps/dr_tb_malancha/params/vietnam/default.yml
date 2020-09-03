@@ -10,20 +10,20 @@ beta: 5
 
 infect_death: .08 # WHO data
 
-detection_rate: 0.39 # solve using CDR value and equation # data obtained for vietnam
+detection_rate: 0.39 # solve using CDR value and equation # data obtained for vietnam # FIXME: not used and not needed
 
 TSR: .90 # data reported in WHO
 
 relative_TSR_MDR: .75
-relative_TSR_H: .65
+relative_TSR_H: .65 # FIXME: Are we saying the TSR of INH-resistant patients is worse than that of MDR-TB?
 relative_TSR_R: .75
 
-cdr:
+cdr:  # FIXME: need to find a way to vary cdr in the MCMC
     1950.: 0.0
     1970.: 0.4
     2015.: .5
 
 
 
-prop_of_failures_developing_inh_R: 5.5
+prop_of_failures_developing_inh_R: 5.5 # FIXME: Proportion
 prop_of_failures_developing_rif_R: 0.027

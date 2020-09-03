@@ -22,7 +22,7 @@ nu: 0.002008875 # (5.5e-6 * 365.25)
 epsilon: 0.401775 #(1.1e-3 * 365.25)
 
 
-rr_reinfection_once_recovered: 0.05
+rr_reinfection_once_recovered: 0.05  # FIXME: seems very low. Where does it come from?
 
 
 
