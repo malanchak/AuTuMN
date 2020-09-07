@@ -2,7 +2,6 @@ from summer.model import StratifiedModel
 from autumn.constants import Compartment, BirthApproach
 from autumn.tool_kit.scenarios import get_model_times_from_inputs
 from summer.model.utils.flowchart import create_flowchart
-
 from autumn.curve import scale_up_function
 
 
@@ -103,9 +102,10 @@ def build_model(params: dict, update_params={}) -> StratifiedModel:
     tb_sir_model.adaptation_functions['universal_death_rateX'] = lambda x: 1./70
 
 # #   add  time_variant parameters
-
     def time_variant_CDR():
-        return scale_up_function(params['cdr'].keys(), params['cdr'].values(), method=4)
+        times = [params['cdr_start_time'], 2020]
+        values = [0., params['cdr_final_level']]
+        return scale_up_function(times, values, method=4)
 
     my_tv_CDR = time_variant_CDR()
 
