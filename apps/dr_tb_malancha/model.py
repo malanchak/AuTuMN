@@ -24,8 +24,7 @@ def build_model(params: dict, update_params={}) -> StratifiedModel:
     ]
 
     params['delta'] = params['beta'] * params['rr_reinfection_once_recovered']
-
-#    params['theta'] = params['beta'] * params['rr_reinfection_once_infected']  # not used at the moment
+    params['theta'] = params['beta'] * params['rr_reinfection_once_infected']
 
     flows = [
         {
@@ -69,6 +68,12 @@ def build_model(params: dict, update_params={}) -> StratifiedModel:
             'type': 'infection_frequency',
             'parameter': 'delta',
             'origin': Compartment.RECOVERED,
+            'to': Compartment.EARLY_LATENT
+        },
+        {
+            'type': 'infection_frequency',
+            'parameter': 'theta',
+            'origin': Compartment.LATE_LATENT,
             'to': Compartment.EARLY_LATENT
         },
         {

@@ -3,11 +3,10 @@ from apps.dr_tb_malancha.calibration import base
 from .utils import get_prior_distributions
 
 
-def run_calibration_chain(max_seconds: int, run_id: int, num_chains: int):
+def run_calibration_chain(max_seconds: int, run_id: int):
     base.run_calibration_chain(
         max_seconds,
         run_id,
-        num_chains,
         Region.PHILIPPINES,
         PAR_PRIORS,
         TARGET_OUTPUTS,
@@ -30,6 +29,12 @@ TARGET_OUTPUTS = [
         "output_key": "prevXinfectiousXamong",
         "years": [2007, 2016],
         "values": [660, 1159],
+        "loglikelihood_distri": "normal",
+    },
+    {
+        "output_key": "notifications",
+        "years": [2018],
+        "values": [382543],
         "loglikelihood_distri": "normal",
     },
     {

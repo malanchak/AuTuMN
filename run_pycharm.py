@@ -4,10 +4,8 @@ Entry point for PyCharm users to run an application
 from autumn.constants import Region
 from autumn.plots.database_plots import plot_from_database
 from apps import dr_tb_malancha
+from apps.dr_tb_malancha.calibration import get_calibration_func
 
-# from apps import covid_19, marshall_islands, mongolia, sir_example, dr_tb_malancha
-# from apps.covid_19.calibration import get_calibration_func
-# from apps.covid_19.mixing_optimisation.constants import *
 
 ## Run a COVID model manually.
 # for REGION in OPTI_REGIONS:   # used by Romain for the optimisation project
@@ -23,17 +21,16 @@ from apps import dr_tb_malancha
 
 
 
-## Malancha's vietnam model
+## Malancha's model
 REGION = Region.VIETNAM
-RUN_SCENARIOS = True
-region_app = dr_tb_malancha.get_region_app(REGION)
-region_app.run_model(RUN_SCENARIOS)
-
-# ## Malancha's Philippines model
-# REGION = Region.PHILIPPINES
 # RUN_SCENARIOS = True
 # region_app = dr_tb_malancha.get_region_app(REGION)
 # region_app.run_model(RUN_SCENARIOS)
+MAX_SECONDS = 15
+CHAIN_ID = 0
+NB_CHAINS = 1
+calibrate_func = get_calibration_func(REGION)
+calibrate_func(MAX_SECONDS, CHAIN_ID)
 
 
 # marshall_islands.run_model()

@@ -11,16 +11,8 @@ population_size: 106000000
 start_time: 1900.
 beta: 5.1
 
-infect_death: .054
-
-#detection_rate: 0.45 # solve using CDR value and equation # data obtained for Philippines # FIXME: not used and not needed
-
 TSR: .85 # data reported in WHO
 
 relative_TSR_MDR: .5
-relative_TSR_H: .5   # FIXME: Are we saying the TSR of INH-resistant patients is worse than that of MDR-TB? #Fixed
+relative_TSR_H: .5
 relative_TSR_R: .67
-
-
-prop_of_failures_developing_inh_R: 11 # FIXME: proportion #fixed for the calibration file
-prop_of_failures_developing_rif_R: 0.8

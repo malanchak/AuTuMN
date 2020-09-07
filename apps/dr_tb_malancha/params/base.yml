@@ -11,7 +11,8 @@ time_step: 1.
 
 # beta: 4.55
 
-gamma: 0.2 
+gamma: 0.2
+infect_death: 0.2  # Ragonnet et al. CID 2020 (average smear-pos and smear-neg, assuming 50/50 proportions)
 universal_death_rate: 0.0142
 universal_death_rateX: 0.0142
 
@@ -21,11 +22,15 @@ kappa: 3.6525 # (1.e-2 * 365.25)
 nu: 0.002008875 # (5.5e-6 * 365.25)
 epsilon: 0.401775 #(1.1e-3 * 365.25)
 
-
-rr_reinfection_once_recovered: 0.5  # FIXME: seems very low. Where does it come from? #made it 0.5 and added it to the calibration.py for MCMC
-
+rr_reinfection_once_infected: .21  # You should find the reference in the appendix of my BMC Medicine paper.
+rr_reinfection_once_recovered: 0.5
 
 cdr_start_time: 1950
 cdr_final_level: .5
+
+prop_of_failures_developing_inh_R: 0.1  # dummy value  (will be calibrated)
+prop_of_failures_developing_rif_R: 0.1  # dummy value  (will be calibrated)
+
+
 
 scenarios: {}

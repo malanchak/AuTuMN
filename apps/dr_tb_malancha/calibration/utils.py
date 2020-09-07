@@ -13,10 +13,10 @@ def get_prior_distributions():
             "distri_ci": [.06, 1.06],
         },
         {
-        	"param_name": "rr_reinfection_once_recovered",
-        	"distribution": "uniform",
-        	"distri_ci": [0.5, 1.5],
-    	},
+            "param_name": "rr_reinfection_once_recovered",
+            "distribution": "uniform",
+            "distri_params": [0.5, 1.5],
+        },
         {
             "param_name": "prop_of_failures_developing_inh_R",
             "distribution": "uniform",
@@ -27,6 +27,17 @@ def get_prior_distributions():
             "distribution": "uniform",
             "distri_params": [0.01, 0.99],
         },
+        {
+            "param_name": "cdr_start_time",
+            "distribution": "uniform",
+            "distri_params": [1950., 1970.],
+        },
+        {
+            "param_name": "cdr_final_level",
+            "distribution": "uniform",
+            "distri_params": [.3, .8],
+        },
+
     ]
 
     return par_priors
