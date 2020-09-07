@@ -5,6 +5,8 @@
 # Parameters used to build a general model of DS-TB to understand rise in DR in Philippines
 country: philippines
 iso3: PHL
+population_size: 106000000
+
 
 start_time: 1900.
 beta: 5.1

@@ -47,7 +47,7 @@ def build_model(params: dict, update_params={}) -> StratifiedModel:
             'origin': Compartment.EARLY_LATENT,
             'to': Compartment.INFECTIOUS
         },
-        
+
         {
             'type': 'standard_flows',
             'parameter': 'nu',
@@ -92,12 +92,12 @@ def build_model(params: dict, update_params={}) -> StratifiedModel:
         init_conditions,
         params,
         requested_flows=flows,
-        birth_approach=BirthApproach.REPLACE_DEATHS, 
-        entry_compartment='susceptible', 
-        starting_population=100000,
-        infectious_compartment=(Compartment.INFECTIOUS,), 
+        birth_approach=BirthApproach.REPLACE_DEATHS,
+        entry_compartment='susceptible',
+        starting_population=params['population_size'],
+        infectious_compartment=(Compartment.INFECTIOUS,),
         verbose=True,
-        
+
     )
 
     tb_sir_model.adaptation_functions['universal_death_rateX'] = lambda x: 1./70
@@ -150,15 +150,15 @@ def build_model(params: dict, update_params={}) -> StratifiedModel:
         tb_sir_model.parameters["dr_amplification_ds_to_inh"] = "dr_amplification_ds_to_inh"
 
 
-        #set up amplification flow for DS to RIF_R  
+        #set up amplification flow for DS to RIF_R
         tb_sir_model.add_transition_flow(
                     {"type": "standard_flows", "parameter": "dr_amplification_ds_to_rif",
                      "origin": "infectiousXstrain_ds", "to": "infectiousXstrain_rif_R",
                      "implement": len(tb_sir_model.all_stratifications)})
-        
+
         def tv_amplification_ds_to_rif_rate(time):
             return my_tv_detection_rate(time) * (1 - params['TSR']) * params['prop_of_failures_developing_rif_R']
-        
+
         tb_sir_model.adaptation_functions["dr_amplification_ds_to_rif"] = tv_amplification_ds_to_rif_rate
         tb_sir_model.parameters["dr_amplification_ds_to_rif"] = "dr_amplification_ds_to_rif"
 
@@ -189,12 +189,38 @@ def build_model(params: dict, update_params={}) -> StratifiedModel:
         tb_sir_model.adaptation_functions["dr_amplification_rif_to_mdr"] = tv_amplification_rif_to_mdr_rate
         tb_sir_model.parameters["dr_amplification_rif_to_mdr"] = "dr_amplification_rif_to_mdr"
 
+    #### track notifications in the model
+    # Add trackers for the flows going from infectious to recovered (stratified by strain)
+    recover_connections = {}
+    for strain in ['ds', 'inh_R', 'rif_R', 'mdr']:
+        recover_connections["recovery_tracker_" + strain] = {
+            "origin": Compartment.INFECTIOUS,
+            "to": Compartment.RECOVERED,
+            "origin_condition": "strain_" + strain,
+            "to_condition": "",
+        }
+    tb_sir_model.output_connections = recover_connections
 
+    # Prepare TSR calculation by strain
+    TSR_by_strain = {'ds': params['TSR']}
+    for strain_non_ds in ['inh_R', 'rif_R', 'mdr']:
+        mapping = {
+            'inh_R': 'H', 'rif_R': 'R', 'mdr': 'MDR'
+        }
+        TSR_by_strain[strain_non_ds] = params['TSR'] * params['relative_TSR_' + mapping[strain_non_ds]]
+
+    # calculate the derived output for notifications
+    def get_notifications(model, time):
+        notifications_count = 0.0
+        time_idx = model.times.index(time)
+        for strain in ['ds', 'inh_R', 'rif_R', 'mdr']:
+            notifications_count += model.derived_outputs["recovery_tracker_" + strain][time_idx] / TSR_by_strain[strain]
+        return notifications_count
+
+    tb_sir_model.derived_output_functions["notifications"] = get_notifications
 
     # tb_sir_model.transition_flows.to_csv("transitions.csv")
 
     # create_flowchart(tb_sir_model, name="sir_model_diagram")
-
-    # tb_sir_model.run_model()
 
     return tb_sir_model
