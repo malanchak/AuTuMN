@@ -195,6 +195,6 @@ def build_model(params: dict, update_params={}) -> StratifiedModel:
 
     # create_flowchart(tb_sir_model, name="sir_model_diagram")
 
-    tb_sir_model.run_model()
+    # tb_sir_model.run_model()
 
     return tb_sir_model
