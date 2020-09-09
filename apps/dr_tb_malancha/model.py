@@ -167,7 +167,6 @@ def build_model(params: dict, update_params={}) -> StratifiedModel:
         tb_sir_model.adaptation_functions["dr_amplification_ds_to_rif"] = tv_amplification_ds_to_rif_rate
         tb_sir_model.parameters["dr_amplification_ds_to_rif"] = "dr_amplification_ds_to_rif"
 
-
         # set up amplification flow for INH_R to MDR
         tb_sir_model.add_transition_flow(
                 {"type": "standard_flows", "parameter": "dr_amplification_inh_to_mdr",
@@ -179,8 +178,6 @@ def build_model(params: dict, update_params={}) -> StratifiedModel:
 
         tb_sir_model.adaptation_functions["dr_amplification_inh_to_mdr"] = tv_amplification_inh_to_mdr_rate
         tb_sir_model.parameters["dr_amplification_inh_to_mdr"] = "dr_amplification_inh_to_mdr"
-
-
 
   		# set up amplification flow for RIF_R to MDR
         tb_sir_model.add_transition_flow(
@@ -223,6 +220,33 @@ def build_model(params: dict, update_params={}) -> StratifiedModel:
         return notifications_count
 
     tb_sir_model.derived_output_functions["notifications"] = get_notifications
+
+    # calculate prevalence infectious
+    def get_prev_infectious(model, time):
+        time_idx = model.times.index(time)
+        infectious_compartments_indices = [i for i, c in enumerate(model.compartment_names) if 'infectious' in c]
+        prev_infectious = sum([float(model.outputs[time_idx, i]) for i in infectious_compartments_indices])
+        prev_infectious_prop = prev_infectious /\
+                               sum([float(model.outputs[time_idx, i]) for i in range(len(model.compartment_names))])
+        return prev_infectious_prop
+
+    tb_sir_model.derived_output_functions["prev_infectious"] = get_prev_infectious
+
+    # calculate proportion of strain-specific TB
+    def make_get_strain_perc(strain):
+        # strain is one of ['ds','inh_R', 'rif_R', 'mdr']
+        def get_perc_strain(model, time):
+            time_idx = model.times.index(time)
+            infectious_compartments_indices = [i for i, c in enumerate(model.compartment_names) if 'infectious' in c]
+            prev_infectious = sum([float(model.outputs[time_idx, i]) for i in infectious_compartments_indices])
+            infectious_strain_compartments_indices = [i for i, c in enumerate(model.compartment_names) if 'infectiousXstrain_' + strain in c]
+            prev_infectious_strain = sum([float(model.outputs[time_idx, i]) for i in infectious_strain_compartments_indices])
+            perc_strain = 100. * prev_infectious_strain / prev_infectious
+            return perc_strain
+        return get_perc_strain
+
+    for strain in ['inh_R', 'rif_R', 'mdr']:
+        tb_sir_model.derived_output_functions["perc_strain_" + strain] = make_get_strain_perc(strain)
 
     # tb_sir_model.transition_flows.to_csv("transitions.csv")
 

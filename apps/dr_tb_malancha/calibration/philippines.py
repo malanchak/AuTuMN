@@ -1,6 +1,6 @@
 from autumn.constants import Region
 from apps.dr_tb_malancha.calibration import base
-from .utils import get_prior_distributions
+from .utils import get_prior_distributions, add_dispersion_param_prior_for_gaussian
 
 
 def run_calibration_chain(max_seconds: int, run_id: int):
@@ -56,6 +56,9 @@ TARGET_OUTPUTS = [
         "loglikelihood_distri": "normal",
     },
 ]
+
+PAR_PRIORS = add_dispersion_param_prior_for_gaussian(PAR_PRIORS, TARGET_OUTPUTS)
+
 
 if __name__ == "__main__":
     run_calibration_chain(1000, 0)

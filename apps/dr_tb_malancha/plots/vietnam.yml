@@ -1,16 +1,16 @@
 outputs_to_plot:
-  - name: prevXinfectiousXamong
+  - name: prev_infectious
     target_times: [2007, 2018]
-    target_values: [[307, 249, 366], [322, 260, 399]]
+    target_values: [[0.00307, 0.00249, 0.00366], [0.00322, 0.00260, 0.00399]]
 
-  - name: prevXinfectiousXstrain_inh_RXamongXinfectious
+  - name: perc_strain_inh_R
     target_times: [2011]
     target_values: [[14.86, 12.15, 17.56]]
 
-  - name: prevXinfectiousXstrain_rif_RXamongXinfectious
+  - name: perc_strain_rif_R
     target_times: [2011]
     target_values: [[0.23, 0.1, 0.35]]
 
-  - name: prevXinfectiousXstrain_mdrXamongXinfectious
+  - name: perc_strain_mdr
     target_times: [2011]
     target_values: [[6.93, 4.22, 9.63]]

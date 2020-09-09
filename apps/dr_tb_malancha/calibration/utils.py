@@ -2,16 +2,10 @@
 def get_prior_distributions():
     par_priors = [
         {"param_name": "beta", "distribution": "uniform", "distri_params": [3.0, 12.0],},
-        {"param_name": "epsilon", "distribution": "lognormal", "distri_params": [-6.78, 0.15]},
-        {"param_name": "kappa", "distribution": "lognormal", "distri_params": [-4.50, 0.13]},
-        {"param_name": "nu", "distribution": "lognormal", "distri_params": [-11.99, 0.34]},
-        {"param_name": "gamma", "distribution": "gamma", "distri_mean": 0.2, "distri_ci": [0.16, 0.29]},
-        {
-            "param_name": "infect_death",
-            "distribution": "gamma",
-            "distri_mean": 0.08,
-            "distri_ci": [.06, 1.06],
-        },
+        # {"param_name": "epsilon", "distribution": "lognormal", "distri_params": [-6.78, 0.15]},
+        # {"param_name": "kappa", "distribution": "lognormal", "distri_params": [-4.50, 0.13]},
+        # {"param_name": "nu", "distribution": "lognormal", "distri_params": [-11.99, 0.34]},
+        # {"param_name": "gamma", "distribution": "gamma", "distri_mean": 0.2, "distri_ci": [0.16, 0.29]},
         {
             "param_name": "rr_reinfection_once_recovered",
             "distribution": "uniform",
@@ -39,5 +33,25 @@ def get_prior_distributions():
         },
 
     ]
+
+    return par_priors
+
+
+def add_dispersion_param_prior_for_gaussian(par_priors, target_outputs):
+    for t in target_outputs:
+        if t["loglikelihood_distri"] == "normal":
+            max_val = max(t["values"])
+            # sd_ that would make the 95% gaussian CI cover half of the max value (4*sd = 95% width)
+            sd_ = 0.25 * max_val / 4.0
+            lower_sd = sd_ / 2.0
+            upper_sd = 2.0 * sd_
+
+            par_priors.append(
+                {
+                    "param_name": t["output_key"] + "_dispersion_param",
+                    "distribution": "uniform",
+                    "distri_params": [lower_sd, upper_sd],
+                },
+            )
 
     return par_priors

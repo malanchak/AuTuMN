@@ -1,6 +1,6 @@
 from autumn.constants import Region
 from apps.dr_tb_malancha.calibration import base
-from .utils import get_prior_distributions
+from .utils import get_prior_distributions, add_dispersion_param_prior_for_gaussian
 
 
 def run_calibration_chain(max_seconds: int, run_id: int):
@@ -17,17 +17,13 @@ def run_calibration_chain(max_seconds: int, run_id: int):
 PAR_PRIORS = get_prior_distributions()
 
 MULTIPLIERS = {
-    "prevXinfectiousXamong": 100000,
-    "prevXinfectiousXstrain_inh_RXamongXinfectious": 100,
-    "prevXinfectiousXstrain_rif_RXamongXinfectious": 100,
-    "prevXinfectiousXstrain_mdrXamongXinfectious": 100,
 }
 
 TARGET_OUTPUTS = [
     {
-        "output_key": "prevXinfectiousXamong",
+        "output_key": "prev_infectious",
         "years": [2007, 2018],
-        "values": [307, 322],
+        "values": [0.00307, 0.00322],
         "loglikelihood_distri": "normal",
     },
     {
@@ -37,25 +33,28 @@ TARGET_OUTPUTS = [
         "loglikelihood_distri": "normal",
     },
     {
-        "output_key": "prevXinfectiousXstrain_inh_RXamongXinfectious",
+        "output_key": "perc_strain_inh_R",
         "years": [2011],
         "values": [14.86],
         "loglikelihood_distri": "normal",
     },
     {
-        "output_key": "prevXinfectiousXstrain_rif_RXamongXinfectious",
+        "output_key": "perc_strain_rif_R",
         "years": [2011],
         "values": [0.23],
         "loglikelihood_distri": "normal",
     },
     {
-        "output_key": "prevXinfectiousXstrain_mdrXamongXinfectious",
+        "output_key": "perc_strain_mdr",
         "years": [2011],
         "values": [6.93],
         "loglikelihood_distri": "normal",
     },
 
 ]
+
+
+PAR_PRIORS = add_dispersion_param_prior_for_gaussian(PAR_PRIORS, TARGET_OUTPUTS)
 
 if __name__ == "__main__":
     run_calibration_chain(1000, 0)

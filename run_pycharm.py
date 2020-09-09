@@ -26,7 +26,7 @@ REGION = Region.VIETNAM
 # RUN_SCENARIOS = True
 # region_app = dr_tb_malancha.get_region_app(REGION)
 # region_app.run_model(RUN_SCENARIOS)
-MAX_SECONDS = 15
+MAX_SECONDS = 60 * 20
 CHAIN_ID = 0
 NB_CHAINS = 1
 calibrate_func = get_calibration_func(REGION)
