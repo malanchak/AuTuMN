@@ -31,7 +31,21 @@ def get_prior_distributions():
             "distribution": "uniform",
             "distri_params": [.3, .8],
         },
-
+        {
+            "param_name": "fitness_inh_R",
+            "distribution": "uniform",
+            "distri_params": [.9, 1.2],
+        },
+        {
+            "param_name": "fitness_rif_R",
+            "distribution": "uniform",
+            "distri_params": [.5, 1.2],
+        },
+        {
+            "param_name": "fitness_mdr",
+            "distribution": "uniform",
+            "distri_params": [.5, 1.2],
+        },
     ]
 
     return par_priors

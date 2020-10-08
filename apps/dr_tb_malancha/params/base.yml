@@ -32,5 +32,8 @@ prop_of_failures_developing_inh_R: 0.1  # dummy value  (will be calibrated)
 prop_of_failures_developing_rif_R: 0.1  # dummy value  (will be calibrated)
 
 
+fitness_inh_R: .9
+fitness_rif_R: .7
+fitness_mdr: .5
 
 scenarios: {}

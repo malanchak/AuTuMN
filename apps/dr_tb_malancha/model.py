@@ -136,7 +136,7 @@ def build_model(params: dict, update_params={}) -> StratifiedModel:
             requested_proportions={'ds': 1., 'inh_R': 0., 'rif_R':0., 'mdr': 0.}, #adjustment_requests={'tau': tau_adjustment},
             verbose=False,
             adjustment_requests={
-                'beta': {'ds': 1., 'inh_R': 0.9, 'rif_R': 0.7, 'mdr': 0.5},
+                'beta': {'ds': 1., 'inh_R': params['fitness_inh_R'], 'rif_R': params['fitness_rif_R'], 'mdr': params['fitness_mdr']},
                 'tau': {'ds': 1., 'inh_R': params['relative_TSR_H'], 'rif_R': params['relative_TSR_R'], 'mdr': params['relative_TSR_MDR']}
                 }
         )
@@ -253,3 +253,4 @@ def build_model(params: dict, update_params={}) -> StratifiedModel:
     # create_flowchart(tb_sir_model, name="sir_model_diagram")
 
     return tb_sir_model
+
