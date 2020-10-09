@@ -11,7 +11,7 @@ population_size: 106000000
 start_time: 1900.
 beta: 5.1
 
-TSR: .85 # data reported in WHO
+tsr_final_level: .85 # data reported in WHO
 
 relative_TSR_MDR: .5
 relative_TSR_H: .5

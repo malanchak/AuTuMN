@@ -32,6 +32,11 @@ def get_prior_distributions():
             "distri_params": [.3, .8],
         },
         {
+            "param_name": "tsr_start_time",
+            "distribution": "uniform",
+            "distri_params": [1960., 1980.],
+        },
+        {
             "param_name": "fitness_inh_R",
             "distribution": "uniform",
             "distri_params": [.9, 1.2],

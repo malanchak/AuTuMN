@@ -28,6 +28,9 @@ rr_reinfection_once_recovered: 0.5
 cdr_start_time: 1950
 cdr_final_level: .5
 
+tsr_start_time: 1960
+tsr_final_level: 80.
+
 prop_of_failures_developing_inh_R: 0.1  # dummy value  (will be calibrated)
 prop_of_failures_developing_rif_R: 0.1  # dummy value  (will be calibrated)
 

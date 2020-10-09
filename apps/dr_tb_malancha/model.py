@@ -115,8 +115,8 @@ def build_model(params: dict, update_params={}) -> StratifiedModel:
     my_tv_cdr = time_variant_CDR()
 
     def time_variant_TSR():
-        times = [params['cdr_start_time'], 2020]
-        values = [0., params['TSR']]
+        times = [params['tsr_start_time'], 2020]
+        values = [0., params['tsr_final_level']]
         return scale_up_function(times, values, method=4)
 
     my_tv_tsr = time_variant_TSR()
