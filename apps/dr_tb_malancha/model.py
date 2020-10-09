@@ -112,19 +112,23 @@ def build_model(params: dict, update_params={}) -> StratifiedModel:
         values = [0., params['cdr_final_level']]
         return scale_up_function(times, values, method=4)
 
-    def time_variant_TSR(t):
+    my_tv_cdr = time_variant_CDR()
+
+    def time_variant_TSR():
         times = [params['cdr_start_time'], 2020]
         values = [0., params['TSR']]
         return scale_up_function(times, values, method=4)
 
+    my_tv_tsr = time_variant_TSR()
+
     def my_tv_tau(time):  # this is for DS-TB
-        return my_tv_detection_rate(time) * time_variant_TSR(time)
+        return my_tv_detection_rate(time) * my_tv_tsr(time)
 
     tb_sir_model.adaptation_functions["tau"] = my_tv_tau
     tb_sir_model.parameters["tau"] = "tau"
 
     def my_tv_detection_rate(time):
-        return time_variant_CDR(time)/(1-time_variant_CDR(time)) * (params['gamma'] + params['universal_death_rate'] + params['infect_death']) #calculating the time varaint detection rate from tv CDR
+        return my_tv_cdr(time)/(1-my_tv_cdr(time)) * (params['gamma'] + params['universal_death_rate'] + params['infect_death']) #calculating the time varaint detection rate from tv CDR
 
 
    #adding strain stratification
@@ -152,7 +156,7 @@ def build_model(params: dict, update_params={}) -> StratifiedModel:
                      "implement": len(tb_sir_model.all_stratifications)})
 
         def tv_amplification_ds_to_inh_rate(time):
-            return my_tv_detection_rate(time) * (1 - time_variant_TSR(time)) * params['prop_of_failures_developing_inh_R']
+            return my_tv_detection_rate(time) * (1 - my_tv_tsr(time)) * params['prop_of_failures_developing_inh_R']
 
         tb_sir_model.adaptation_functions["dr_amplification_ds_to_inh"] = tv_amplification_ds_to_inh_rate
         tb_sir_model.parameters["dr_amplification_ds_to_inh"] = "dr_amplification_ds_to_inh"
@@ -165,7 +169,7 @@ def build_model(params: dict, update_params={}) -> StratifiedModel:
                      "implement": len(tb_sir_model.all_stratifications)})
 
         def tv_amplification_ds_to_rif_rate(time):
-            return my_tv_detection_rate(time) * (1 - time_variant_TSR(time)) * params['prop_of_failures_developing_rif_R']
+            return my_tv_detection_rate(time) * (1 - my_tv_tsr(time)) * params['prop_of_failures_developing_rif_R']
 
         tb_sir_model.adaptation_functions["dr_amplification_ds_to_rif"] = tv_amplification_ds_to_rif_rate
         tb_sir_model.parameters["dr_amplification_ds_to_rif"] = "dr_amplification_ds_to_rif"
@@ -177,7 +181,7 @@ def build_model(params: dict, update_params={}) -> StratifiedModel:
                  "implement": len(tb_sir_model.all_stratifications)})
 
         def tv_amplification_inh_to_mdr_rate(time):
-            return my_tv_detection_rate(time) * (1 - (time_variant_TSR(time) * params['relative_TSR_H'])) * params['prop_of_failures_developing_inh_R']
+            return my_tv_detection_rate(time) * (1 - (my_tv_tsr(time) * params['relative_TSR_H'])) * params['prop_of_failures_developing_inh_R']
 
         tb_sir_model.adaptation_functions["dr_amplification_inh_to_mdr"] = tv_amplification_inh_to_mdr_rate
         tb_sir_model.parameters["dr_amplification_inh_to_mdr"] = "dr_amplification_inh_to_mdr"
@@ -189,7 +193,7 @@ def build_model(params: dict, update_params={}) -> StratifiedModel:
                  "implement": len(tb_sir_model.all_stratifications)})
 
         def tv_amplification_rif_to_mdr_rate(time):
-            return my_tv_detection_rate(time) * (1 - (time_variant_TSR(time) * params['relative_TSR_R'])) * params['prop_of_failures_developing_rif_R']
+            return my_tv_detection_rate(time) * (1 - (my_tv_tsr(time) * params['relative_TSR_R'])) * params['prop_of_failures_developing_rif_R']
 
         tb_sir_model.adaptation_functions["dr_amplification_rif_to_mdr"] = tv_amplification_rif_to_mdr_rate
         tb_sir_model.parameters["dr_amplification_rif_to_mdr"] = "dr_amplification_rif_to_mdr"
@@ -209,11 +213,11 @@ def build_model(params: dict, update_params={}) -> StratifiedModel:
     # Prepare TSR calculation by strain
     def make_func_tsr_by_strain(strain):
         def tsr_by_strain(time):
-            return time_variant_TSR(time) * params['relative_TSR_' + mapping[strain]]
+            return my_tv_tsr(time) * params['relative_TSR_' + mapping[strain]]
 
         return tsr_by_strain
 
-    tsr_by_strain = {'ds': time_variant_TSR}
+    tsr_by_strain = {'ds': my_tv_tsr}
 
     for strain_non_ds in ['inh_R', 'rif_R', 'mdr']:
         mapping = {
