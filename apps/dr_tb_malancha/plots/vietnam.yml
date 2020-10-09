@@ -14,3 +14,7 @@ outputs_to_plot:
   - name: perc_strain_mdr
     target_times: [2011]
     target_values: [[6.93, 4.22, 9.63]]
+
+  - name: notifications
+    target_times: [2018]
+    target_values: [[102171]]

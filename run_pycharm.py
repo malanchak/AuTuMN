@@ -23,14 +23,15 @@ from apps.dr_tb_malancha.calibration import get_calibration_func
 
 ## Malancha's model
 REGION = Region.VIETNAM
-RUN_SCENARIOS = True
-region_app = dr_tb_malancha.get_region_app(REGION)
-region_app.run_model(RUN_SCENARIOS)
-# MAX_SECONDS = 60 * 20
-# CHAIN_ID = 0
-# NB_CHAINS = 1
-# calibrate_func = get_calibration_func(REGION)
-# calibrate_func(MAX_SECONDS, CHAIN_ID)
+# RUN_SCENARIOS = True
+# region_app = dr_tb_malancha.get_region_app(REGION)
+# region_app.run_model(RUN_SCENARIOS)
+
+MAX_SECONDS = 2000
+CHAIN_ID = 0
+NB_CHAINS = 1
+calibrate_func = get_calibration_func(REGION)
+calibrate_func(MAX_SECONDS, CHAIN_ID)
 
 
 # marshall_islands.run_model()
