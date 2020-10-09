@@ -18,15 +18,11 @@ def run_calibration_chain(max_seconds: int, run_id: int):
 PAR_PRIORS = get_prior_distributions()
 
 MULTIPLIERS = {
-    "prevXinfectiousXamong": 100000,
-    "prevXinfectiousXstrain_inh_RXamongXinfectious": 100,
-    "prevXinfectiousXstrain_rif_RXamongXinfectious": 100,
-    "prevXinfectiousXstrain_mdrXamongXinfectious": 100,
 }
 
 TARGET_OUTPUTS = [
     {
-        "output_key": "prevXinfectiousXamong",
+        "output_key": "prev_infectious",
         "years": [2007, 2016],
         "values": [660, 1159],
         "loglikelihood_distri": "normal",
@@ -38,19 +34,19 @@ TARGET_OUTPUTS = [
         "loglikelihood_distri": "normal",
     },
     {
-        "output_key": "prevXinfectiousXstrain_inh_RXamongXinfectious",
+        "output_key": "perc_strain_inh_R",
         "years": [2007, 2016],
         "values": [9.44, 12.43],
         "loglikelihood_distri": "normal",
     },
     {
-        "output_key": "prevXinfectiousXstrain_rif_RXamongXinfectious",
+        "output_key": "perc_strain_rif_R",
         "years": [2007, 2016],
         "values": [1.008, 0.82],
         "loglikelihood_distri": "normal",
     },
     {
-        "output_key": "prevXinfectiousXstrain_mdrXamongXinfectious",
+        "output_key": "perc_strain_mdr",
         "years": [2007, 2016],
         "values": [5.8, 3.35],
         "loglikelihood_distri": "normal",
