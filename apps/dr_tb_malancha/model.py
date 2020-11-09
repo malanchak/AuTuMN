@@ -140,10 +140,12 @@ def build_model(params: dict, update_params={}) -> StratifiedModel:
         tb_sir_model.stratify(
             "strain", ['ds', 'inh_R', 'rif_R', 'mdr'],
             compartment_types_to_stratify=[Compartment.EARLY_LATENT, Compartment.LATE_LATENT, Compartment.INFECTIOUS],
-            requested_proportions={'ds': 1., 'inh_R': 0., 'rif_R':0., 'mdr': 0.}, #adjustment_requests={'tau': tau_adjustment},
+            requested_proportions={'ds': 1., 'inh_R': 0., 'rif_R':0., 'mdr': 0.},
             verbose=False,
             adjustment_requests={
                 'beta': {'ds': 1., 'inh_R': params['fitness_inh_R'], 'rif_R': params['fitness_rif_R'], 'mdr': params['fitness_mdr']},
+                'delta': {'ds': 1., 'inh_R': params['fitness_inh_R'], 'rif_R': params['fitness_rif_R'], 'mdr': params['fitness_mdr']},
+                'theta': {'ds': 1., 'inh_R': params['fitness_inh_R'], 'rif_R': params['fitness_rif_R'], 'mdr': params['fitness_mdr']},
                 'tau': {'ds': 1., 'inh_R': params['relative_TSR_H'], 'rif_R': params['relative_TSR_R'], 'mdr': params['relative_TSR_MDR']}
                 }
         )
