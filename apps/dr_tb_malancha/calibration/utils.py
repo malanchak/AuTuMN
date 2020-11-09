@@ -1,11 +1,11 @@
 
 def get_prior_distributions():
     par_priors = [
-        {"param_name": "beta", "distribution": "uniform", "distri_params": [3.0, 12.0],},
-        # {"param_name": "epsilon", "distribution": "lognormal", "distri_params": [-6.78, 0.15]},
-        # {"param_name": "kappa", "distribution": "lognormal", "distri_params": [-4.50, 0.13]},
-        # {"param_name": "nu", "distribution": "lognormal", "distri_params": [-11.99, 0.34]},
-        # {"param_name": "gamma", "distribution": "gamma", "distri_mean": 0.2, "distri_ci": [0.16, 0.29]},
+        {"param_name": "beta", "distribution": "uniform", "distri_params": [3.0, 11.0]},
+        {"param_name": "epsilon", "distribution": "uniform", "distri_params": [0.1, 0.8]},
+        {"param_name": "kappa", "distribution": "uniform", "distri_params": [1.0, 7.0]},
+        {"param_name": "nu", "distribution": "uniform", "distri_params": [0.0009, 0.006]},
+        {"param_name": "gamma", "distribution": "gamma", "distri_mean": 0.2, "distri_ci": [0.16, 0.29]},
         {
             "param_name": "rr_reinfection_once_recovered",
             "distribution": "uniform",
