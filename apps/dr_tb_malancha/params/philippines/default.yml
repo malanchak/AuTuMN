@@ -13,6 +13,6 @@ beta: 5.1
 
 tsr_final_level: .85 # data reported in WHO
 
-relative_TSR_MDR: .5
-relative_TSR_H: .5
-relative_TSR_R: .67
+relative_TSR_MDR: .6
+relative_TSR_H: .65
+relative_TSR_R: .75
