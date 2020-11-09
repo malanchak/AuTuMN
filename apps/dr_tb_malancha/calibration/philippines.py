@@ -24,7 +24,7 @@ TARGET_OUTPUTS = [
     {
         "output_key": "prev_infectious",
         "years": [2007, 2016],
-        "values": [660, 1159],
+        "values": [0.00660, 0.01159],
         "loglikelihood_distri": "normal",
     },
     {
