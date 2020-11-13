@@ -13,6 +13,7 @@ def main():
 		print("Column:\t{}".format(column))
 		print("Mean:\t{}".format(np.mean(df[column])))
 		print("95% CI {}".format(st.t.interval(0.95, len(df[column])-1, loc=np.mean(df[column]), scale=st.sem(df[column]))))
+		print("Median:\t{}".format(np.median(df[column])))
 		print("STD:\t{}".format(np.std(df[column])))
 		print("25%:\t{}".format(np.percentile(df[column],25)))
 		print("50%:\t{}".format(np.percentile(df[column],50)))
