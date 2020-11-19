@@ -200,17 +200,47 @@ def build_model(params: dict, update_params={}) -> StratifiedModel:
         tb_sir_model.adaptation_functions["dr_amplification_rif_to_mdr"] = tv_amplification_rif_to_mdr_rate
         tb_sir_model.parameters["dr_amplification_rif_to_mdr"] = "dr_amplification_rif_to_mdr"
 
+
+    # Add trackers for the flows used to derive outputs
+    flow_connections = {}
+
     #### track notifications in the model
-    # Add trackers for the flows going from infectious to recovered (stratified by strain)
-    recover_connections = {}
     for strain in ['ds', 'inh_R', 'rif_R', 'mdr']:
-        recover_connections["recovery_tracker_" + strain] = {
+        flow_connections["recovery_tracker_" + strain] = {
             "origin": Compartment.INFECTIOUS,
             "to": Compartment.RECOVERED,
             "origin_condition": "strain_" + strain,
             "to_condition": "",
         }
-    tb_sir_model.output_connections = recover_connections
+
+    ### track incidence flows to be able to distinguish DR amplification from transmission
+    amplification_source = {
+        "inh_R": ['ds'],
+        "rif_R": ['ds'],
+        "mdr": ["inh_R", "rif_R"]
+    }
+    for destination_strain, source_strains in amplification_source.items():
+        flow_connections["incidence_progression_early" + destination_strain] = {
+            "origin": Compartment.EARLY_LATENT,
+            "to": Compartment.INFECTIOUS,
+            "origin_condition": "strain_" + destination_strain,
+            "to_condition": "",
+        }
+        flow_connections["incidence_progression_late" + destination_strain] = {
+            "origin": Compartment.LATE_LATENT,
+            "to": Compartment.INFECTIOUS,
+            "origin_condition": "strain_" + destination_strain,
+            "to_condition": "",
+        }
+        for source_strain in source_strains:
+            flow_connections[f"incidence_ampli_from_{source_strain}_to_{destination_strain}"] = {
+                "origin": Compartment.INFECTIOUS,
+                "to": Compartment.INFECTIOUS,
+                "origin_condition": "strain_" + source_strain,
+                "to_condition": "strain_" + destination_strain,
+            }
+
+    tb_sir_model.output_connections = flow_connections
 
     # Prepare TSR calculation by strain
     def make_func_tsr_by_strain(strain):
@@ -268,6 +298,26 @@ def build_model(params: dict, update_params={}) -> StratifiedModel:
     # tb_sir_model.transition_flows.to_csv("transitions.csv")
 
     # create_flowchart(tb_sir_model, name="sir_model_diagram")
+
+    # calculate percentage of transmitted DR among all incident DR
+    def make_get_perc_dr_transmitted(strain):
+        # strain is one of ['ds','inh_R', 'rif_R', 'mdr']
+        def get_perc_dr_transmitted(model, time):
+            time_idx = model.times.index(time)
+            incidence_from_transmission = \
+                model.derived_outputs["incidence_progression_early" + strain][time_idx] +\
+                model.derived_outputs["incidence_progression_late" + strain][time_idx]
+            incidence_from_amplification = 0
+            for source_strain in amplification_source[strain]:
+                incidence_from_amplification +=\
+                    model.derived_outputs[f"incidence_ampli_from_{source_strain}_to_{strain}"][time_idx]
+
+            return 100. * incidence_from_transmission / (incidence_from_transmission + incidence_from_amplification)
+
+        return get_perc_dr_transmitted
+
+    for strain in ['inh_R', 'rif_R', 'mdr']:
+        tb_sir_model.derived_output_functions["perc_transmitted_" + strain] = make_get_perc_dr_transmitted(strain)
 
     return tb_sir_model
 
